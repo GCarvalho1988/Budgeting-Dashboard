@@ -84,7 +84,7 @@ async function seed() {
       // Create upload record
       const { data: upload, error: uploadErr } = await supabase
         .from('uploads')
-        .insert({ filename: `seed-${period}.csv`, period, uploaded_by: 'seeder', row_count: rows.length })
+        .insert({ filename: `seed-${period}.csv`, period, uploaded_by: null, row_count: rows.length })
         .select()
         .single()
 
