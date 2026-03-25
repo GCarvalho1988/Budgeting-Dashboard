@@ -134,19 +134,19 @@ Top navigation bar with tabs. Stat cards and charts fill the page beneath.
 2. App parses the CSV client-side and shows a preview:
    - Row count, date range detected, categories found
    - Any malformed rows flagged (skipped with warning, not silently dropped)
-3. Duplicate check: if the detected period already exists in `uploads`, a warning is shown before confirming
+3. Duplicate check: if the detected period already exists in `uploads`, a warning is shown. The admin can choose to **overwrite** (delete all existing transactions for that period and replace) or **cancel**. Appending to an existing period is not supported.
 4. On confirm:
    - Raw CSV written to Supabase Storage
    - Parsed transactions inserted into Postgres via a Netlify Function
 5. Dashboard refreshes automatically
 
-**Note:** The LifeStages CSV column mapping will be confirmed against a sample file at implementation time.
+**Note:** The LifeStages CSV column mapping must be confirmed against a sample file as the **first implementation task**, before the parser is written. Do not assume column names.
 
 ---
 
 ## Historical Data
 
-The user has existing data covering **October 2024 to February 2026** across two Excel tabs. This will be converted and seeded as part of the initial setup.
+The user has existing data covering **October 2024 to February 2026** across two Excel tabs (one spreadsheet, two sheets). This requires a **bespoke one-off conversion script** to extract and normalise the data into the CSV format expected by the standard upload flow — it is a distinct setup task and not handled by the regular CSV uploader.
 
 ---
 
