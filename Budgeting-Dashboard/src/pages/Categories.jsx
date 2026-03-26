@@ -15,12 +15,16 @@ export default function Categories() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('transactions').select('category').then(({ data }) => {
-      const cats = [...new Set(data?.map(t => t.category))].sort()
-      setCategories(cats)
-      if (cats.length) setSelected(cats[0])
-      setLoading(false)
-    })
+    supabase
+      .from('transactions')
+      .select('category')
+      .limit(10000)
+      .then(({ data }) => {
+        const cats = [...new Set(data?.map(t => t.category))].sort()
+        setCategories(cats)
+        if (cats.length) setSelected(cats[0])
+        setLoading(false)
+      })
   }, [])
 
   useEffect(() => {
@@ -31,6 +35,7 @@ export default function Categories() {
         .select('date, amount, description')
         .eq('category', selected)
         .order('date', { ascending: false })
+        .limit(10000)
 
       setTransactions(txs || [])
 
@@ -66,19 +71,20 @@ export default function Categories() {
     load()
   }, [selected])
 
-  if (loading) return <div className="text-gray-400 py-8">Loading…</div>
+  if (loading) return <div className="text-[#B6A596] py-8">Loading…</div>
 
   return (
     <div className="space-y-6">
+      {/* Category pills */}
       <div className="flex flex-wrap gap-2">
         {categories.map(cat => (
           <button
             key={cat}
             onClick={() => setSelected(cat)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded text-xs font-medium tracking-wide border transition-colors ${
               selected === cat
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-400'
+                ? 'border-[#DC9F85] text-[#DC9F85]'
+                : 'border-[#66473B] text-[#B6A596] hover:border-[#B6A596]'
             }`}
           >
             {cat}
@@ -90,15 +96,25 @@ export default function Categories() {
         <>
           {yoy && (
             <div className="flex gap-4">
-              <div className="bg-white rounded-xl border border-gray-200 p-5 flex-1">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">{yoy.py} Total</p>
-                <p className="text-xl font-bold text-gray-900">{formatGBP(yoy.pyTotal)}</p>
+              <div className="flex-1 border border-[#66473B] rounded p-5">
+                <p className="text-xs text-[#B6A596] uppercase tracking-widest">{yoy.py} Total</p>
+                <p
+                  className="text-xl font-bold text-[#EBDCC4] mt-1"
+                  style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+                >
+                  {formatGBP(yoy.pyTotal)}
+                </p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-5 flex-1">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">{yoy.cy} Total</p>
-                <p className="text-xl font-bold text-gray-900">{formatGBP(yoy.cyTotal)}</p>
+              <div className="flex-1 border border-[#66473B] rounded p-5">
+                <p className="text-xs text-[#B6A596] uppercase tracking-widest">{yoy.cy} Total</p>
+                <p
+                  className="text-xl font-bold text-[#EBDCC4] mt-1"
+                  style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+                >
+                  {formatGBP(yoy.cyTotal)}
+                </p>
                 {yoy.delta !== null && (
-                  <p className={`text-sm ${yoy.delta > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                  <p className={`text-xs mt-1 ${yoy.delta > 0 ? 'text-[#DC9F85]' : 'text-[#B6A596]'}`}>
                     {yoy.delta > 0 ? '↑' : '↓'} {Math.abs(yoy.delta)}% YoY
                   </p>
                 )}
@@ -106,23 +122,36 @@ export default function Categories() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">{selected} — Monthly Spend</h2>
+          <div className="border border-[#66473B] rounded p-5">
+            <h2
+              className="text-xs font-semibold text-[#B6A596] uppercase tracking-widest mb-4"
+              style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+            >
+              {selected} — Monthly Spend
+            </h2>
             <MonthlyTrendChart data={monthData} />
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-700">Transactions in {selected}</h2>
+          <div className="border border-[#66473B] rounded">
+            <div className="px-5 py-4 border-b border-[#35211A]">
+              <h2
+                className="text-xs font-semibold text-[#B6A596] uppercase tracking-widest"
+                style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+              >
+                Transactions in {selected}
+              </h2>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div>
               {transactions.map(tx => (
-                <div key={tx.date + tx.description + tx.amount} className="px-5 py-3 flex justify-between text-sm">
+                <div
+                  key={tx.date + tx.description + tx.amount}
+                  className="px-5 py-3 flex justify-between text-sm border-b border-[#35211A] last:border-0"
+                >
                   <div>
-                    <p className="text-gray-900">{tx.description}</p>
-                    <p className="text-gray-400 text-xs">{tx.date}</p>
+                    <p className="text-[#EBDCC4]">{tx.description}</p>
+                    <p className="text-[#B6A596] text-xs mt-0.5">{tx.date}</p>
                   </div>
-                  <p className="text-gray-900 font-medium">{formatGBP(tx.amount)}</p>
+                  <p className="text-[#EBDCC4] font-medium">{formatGBP(tx.amount)}</p>
                 </div>
               ))}
             </div>
