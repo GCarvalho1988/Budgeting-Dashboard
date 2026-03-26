@@ -18,4 +18,4 @@
 
 # Supabase anon key and URL are intentionally public — safe to bundle in client-side code
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_ANON_KEY,SUPABASE_URL"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_ANON_KEY,VITE_SUPABASE_URL"
