@@ -7,24 +7,37 @@ const PALETTE = [
   '#EBDCC4', '#A08060',
 ]
 
-function Cell({ x, y, width, height, name, fill }) {
+function Cell({ x, y, width, height, name, value, fill }) {
   const showLabel = width > 50 && height > 24
   return (
     <g>
       <rect x={x} y={y} width={width} height={height} fill={fill} stroke="#181818" strokeWidth={2} />
       {showLabel && (
-        <text
-          x={x + width / 2}
-          y={y + height / 2}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={10}
-          fontWeight={600}
-          fill="#181818"
-          style={{ pointerEvents: 'none' }}
-        >
-          {name}
-        </text>
+        <>
+          <text
+            x={x + width / 2}
+            y={y + height / 2 - 6}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={10}
+            fontWeight={600}
+            fill="#181818"
+            style={{ pointerEvents: 'none' }}
+          >
+            {name}
+          </text>
+          <text
+            x={x + width / 2}
+            y={y + height / 2 + 8}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={9}
+            fill="#181818"
+            style={{ pointerEvents: 'none' }}
+          >
+            £{Number(value).toLocaleString('en-GB', { maximumFractionDigits: 0 })}
+          </text>
+        </>
       )}
     </g>
   )
