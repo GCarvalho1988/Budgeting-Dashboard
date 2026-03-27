@@ -11,32 +11,19 @@ function formatGBP(n) {
   return `£${Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
-// Rolling average of trueSpend over a sliding window
-// monthlyData: [{period: string, trueSpend: number}] sorted ascending
-export function computeRollingAverage(monthlyData, window = 6) {
-  return monthlyData.map((_, i) => {
-    const start = Math.max(0, i - window + 1)
-    const slice = monthlyData.slice(start, i + 1)
-    const avg = slice.reduce((s, x) => s + x.trueSpend, 0) / slice.length
-    return { period: monthlyData[i].period, avg: Math.round(avg) }
-  })
-}
-
 export default function Overview() {
-  const [allCatData, setAllCatData] = useState(null)  // [{period, category, total}]
-  const [allIncomeData, setAllIncomeData] = useState(null)  // [{period, total}]
-  const [periods, setPeriods] = useState([])
-  const [periodIndex, setPeriodIndex] = useState(null)
-  const [nurseryTotal, setNurseryTotal] = useState(0)
+  const [allCatData, setAllCatData]       = useState(null)
+  const [allIncomeData, setAllIncomeData] = useState(null)
+  const [periods, setPeriods]             = useState([])
+  const [periodIndex, setPeriodIndex]     = useState(null)
 
-  // Load all data once on mount
   useEffect(() => {
     async function load() {
       const [{ data: catData, error: catErr }, { data: incomeData, error: incomeErr }] = await Promise.all([
         supabase.rpc('get_monthly_category_totals'),
         supabase.rpc('get_monthly_income'),
       ])
-      if (catErr) console.error('get_monthly_category_totals failed:', catErr.message)
+      if (catErr)    console.error('get_monthly_category_totals failed:', catErr.message)
       if (incomeErr) console.error('get_monthly_income failed:', incomeErr.message)
       const ps = [...new Set((catData ?? []).map(r => r.period))].sort()
       setAllCatData(catData ?? [])
@@ -47,77 +34,52 @@ export default function Overview() {
     load()
   }, [])
 
-  const period = periodIndex !== null && periods.length > 0 ? periods[periodIndex] : null
+  const loading = allCatData === null || allIncomeData === null
+  if (loading) return <div className="text-[#B6A596] py-8">Loading…</div>
+  if (periods.length === 0) return <div className="text-[#B6A596] py-8">No data yet. Upload a CSV to get started.</div>
 
-  // Fetch nursery sub-total for selected period (the only per-period re-fetch)
-  useEffect(() => {
-    if (!period) return
-    supabase
-      .from('transactions')
-      .select('amount')
-      // Nursery sub-total: hardcoded description prefix matching production data
-      .ilike('description', 'Vasco Nursery%')
-      .gte('date', `${period}-01`)
-      .lt('date', nextPeriodBoundary(period))
-      .then(({ data }) => {
-        setNurseryTotal(data?.reduce((s, t) => s + Number(t.amount), 0) ?? 0)
-      })
-  }, [period])
+  const period     = periodIndex !== null ? periods[periodIndex] : null
+  const prevPeriod = periodIndex > 0 ? periods[periodIndex - 1] : null
 
-  // Derive KPIs for selected period from cached data
-  const periodRows = period && allCatData
-    ? allCatData.filter(r => r.period === period)
-    : []
+  const periodRows = allCatData.filter(r => r.period === period)
+  const prevRows   = prevPeriod ? allCatData.filter(r => r.period === prevPeriod) : []
 
-  const bills = periodRows
-    .filter(r => bucketCategory(r.category) === 'bills')
-    .reduce((s, r) => s + Number(r.total), 0)
+  function sumBucket(rows, bucket) {
+    return rows.filter(r => bucketCategory(r.category) === bucket).reduce((s, r) => s + Number(r.total), 0)
+  }
 
-  const discretionary = periodRows
-    .filter(r => bucketCategory(r.category) === 'discretionary')
-    .reduce((s, r) => s + Number(r.total), 0)
+  const bills         = sumBucket(periodRows, 'bills')
+  const discretionary = sumBucket(periodRows, 'discretionary')
+  const income        = Number(allIncomeData.find(r => r.period === period)?.total ?? 0)
+  const cashflow      = income - bills - discretionary
 
-  const transient = periodRows
-    .filter(r => bucketCategory(r.category) === 'transient')
-    .reduce((s, r) => s + Number(r.total), 0)
+  const prevBills         = sumBucket(prevRows, 'bills')
+  const prevDiscretionary = sumBucket(prevRows, 'discretionary')
+  const prevIncome        = Number(allIncomeData.find(r => r.period === prevPeriod)?.total ?? 0)
 
-  const income = allIncomeData
-    ? Number(allIncomeData.find(r => r.period === period)?.total ?? 0)
-    : 0
+  function pctDelta(cur, prev) {
+    if (!prev) return undefined
+    return Math.round(((cur - prev) / prev) * 100)
+  }
 
-  // Discretionary treemap: categories for selected period, sorted by total
   const discretionaryItems = periodRows
     .filter(r => bucketCategory(r.category) === 'discretionary')
     .map(r => ({ name: r.category, size: Math.round(Number(r.total)) }))
     .sort((a, b) => b.size - a.size)
 
-  // Monthly trend: true spend (bills + discretionary only) + 6-month rolling average
-  const monthlyTrueSpend = periods.map(p => {
-    const rows = allCatData.filter(r => r.period === p)
-    const trueSpend = rows
-      .filter(r => bucketCategory(r.category) !== 'transient')
-      .reduce((s, r) => s + Number(r.total), 0)
-    return { period: p, trueSpend: Math.round(trueSpend) }
+  const discretionaryTotal = discretionaryItems.reduce((s, i) => s + i.size, 0)
+
+  // Cumulative cashflow trend across all periods
+  let cumulative = 0
+  const cashflowTrend = periods.map(p => {
+    const rows  = allCatData.filter(r => r.period === p)
+    const spend = sumBucket(rows, 'bills') + sumBucket(rows, 'discretionary')
+    const inc   = Number(allIncomeData.find(r => r.period === p)?.total ?? 0)
+    cumulative += inc - spend
+    const [y, m] = p.split('-')
+    const label  = new Date(Number(y), Number(m) - 1).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+    return { month: label, amount: Math.round(cumulative) }
   })
-
-  const rollingAvg = computeRollingAverage(monthlyTrueSpend)
-
-  const trendData = monthlyTrueSpend.slice(-12).map((item, i) => {
-    const [y, m] = item.period.split('-')
-    const label = new Date(Number(y), Number(m) - 1)
-      .toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
-    const offset = monthlyTrueSpend.length - Math.min(12, monthlyTrueSpend.length)
-    return {
-      month: label,
-      amount: item.trueSpend,
-      avg: rollingAvg[offset + i]?.avg,
-    }
-  })
-
-  const loading = allCatData === null || allIncomeData === null
-
-  if (loading) return <div className="text-[#B6A596] py-8">Loading…</div>
-  if (periods.length === 0) return <div className="text-[#B6A596] py-8">No data yet. Upload a CSV to get started.</div>
 
   return (
     <div className="space-y-6">
@@ -127,9 +89,7 @@ export default function Overview() {
           onClick={() => setPeriodIndex(i => Math.max(0, i - 1))}
           disabled={periodIndex === 0}
           className="text-[#DC9F85] disabled:text-[#35211A] text-lg leading-none px-1 transition-colors"
-        >
-          ‹
-        </button>
+        >‹</button>
         <span
           className="text-[#EBDCC4] text-sm uppercase tracking-widest font-semibold"
           style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
@@ -140,9 +100,7 @@ export default function Overview() {
           onClick={() => setPeriodIndex(i => Math.min(periods.length - 1, i + 1))}
           disabled={periodIndex === periods.length - 1}
           className="text-[#DC9F85] disabled:text-[#35211A] text-lg leading-none px-1 transition-colors"
-        >
-          ›
-        </button>
+        >›</button>
       </div>
 
       {/* 4 KPI cards */}
@@ -150,35 +108,63 @@ export default function Overview() {
         <KpiCard
           label="Bills & Fixed"
           value={formatGBP(bills)}
-          subLine={nurseryTotal > 0 ? `Nursery ${formatGBP(nurseryTotal)}` : undefined}
+          delta={pctDelta(bills, prevBills)}
+          deltaLabel="vs last month"
         />
-        <KpiCard label="Discretionary" value={formatGBP(discretionary)} />
-        <KpiCard label="Transfers" value={formatGBP(transient)} muted />
-        <KpiCard label="Income" value={income > 0 ? formatGBP(income) : '—'} />
+        <KpiCard
+          label="Discretionary"
+          value={formatGBP(discretionary)}
+          delta={pctDelta(discretionary, prevDiscretionary)}
+          deltaLabel="vs last month"
+        />
+        <KpiCard
+          label="Income"
+          value={income > 0 ? formatGBP(income) : '—'}
+          delta={pctDelta(income, prevIncome)}
+          deltaLabel="vs last month"
+        />
+        <KpiCard
+          label="Cashflow"
+          value={formatGBP(cashflow)}
+          muted={cashflow < 0}
+        />
       </div>
 
-      {/* Discretionary treemap */}
+      {/* Discretionary Breakdown: total + treemap + sorted list */}
       {discretionaryItems.length > 0 && (
         <div className="border border-[#66473B] rounded p-5">
-          <h2
-            className="text-xs font-semibold text-[#B6A596] uppercase tracking-widest mb-4"
-            style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
-          >
-            Discretionary Breakdown
-          </h2>
+          <div className="flex items-baseline justify-between mb-4">
+            <h2
+              className="text-xs font-semibold text-[#B6A596] uppercase tracking-widest"
+              style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+            >
+              Discretionary Breakdown
+            </h2>
+            <span className="text-sm font-bold text-[#EBDCC4]" style={{ fontFamily: "'Clash Grotesk', sans-serif" }}>
+              {formatGBP(discretionaryTotal)}
+            </span>
+          </div>
           <DiscretionaryTreemap data={discretionaryItems} />
+          <div className="mt-4 space-y-1.5">
+            {discretionaryItems.map(item => (
+              <div key={item.name} className="flex items-center justify-between text-xs">
+                <span className="text-[#B6A596]">{item.name}</span>
+                <span className="text-[#EBDCC4] tabular-nums">{formatGBP(item.size)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Monthly trend with rolling average */}
+      {/* Cumulative Cashflow chart */}
       <div className="border border-[#66473B] rounded p-5">
         <h2
           className="text-xs font-semibold text-[#B6A596] uppercase tracking-widest mb-4"
           style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
         >
-          Monthly Trend
+          Cumulative Cashflow
         </h2>
-        <MonthlyTrendChart data={trendData} />
+        <MonthlyTrendChart data={cashflowTrend} />
       </div>
     </div>
   )
