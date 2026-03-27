@@ -10,20 +10,21 @@ beforeAll(() => {
   }
 })
 
-// Mock supabase — we'll configure per-test via mockImplementation
 vi.mock('../src/lib/supabase', () => {
-  const chain = {
+  const fromChain = {
     select: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    single: vi.fn(),
+    ilike: vi.fn().mockReturnThis(),
     gte: vi.fn().mockReturnThis(),
     lt: vi.fn().mockReturnThis(),
+    then: vi.fn().mockImplementation(cb => {
+      cb({ data: [] })
+      return Promise.resolve()
+    }),
   }
   return {
     supabase: {
-      from: vi.fn().mockReturnValue(chain),
-      _chain: chain,
+      rpc: vi.fn(),
+      from: vi.fn().mockReturnValue(fromChain),
     },
   }
 })
@@ -33,22 +34,28 @@ import { supabase } from '../src/lib/supabase'
 
 beforeEach(() => {
   vi.clearAllMocks()
-  supabase.from.mockReturnValue(supabase._chain)
-  Object.values(supabase._chain).forEach(fn => {
-    if (fn.mockReturnThis) fn.mockReturnThis()
-  })
+  // Default: rpc never resolves (loading state)
+  supabase.rpc.mockReturnValue(new Promise(() => {}))
+  // Restore from chain
+  const fromChain = {
+    select: vi.fn().mockReturnThis(),
+    ilike: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
+    then: vi.fn().mockImplementation(cb => { cb({ data: [] }); return Promise.resolve() }),
+  }
+  supabase.from.mockReturnValue(fromChain)
 })
 
 describe('Overview', () => {
   it('shows loading state initially', () => {
-    // single() never resolves — stays in loading
-    supabase._chain.single.mockReturnValue(new Promise(() => {}))
+    // rpc() never resolves — stays in loading
     render(<Overview />)
     expect(screen.getByText(/loading/i)).toBeInTheDocument()
   })
 
-  it('shows empty state when no uploads exist', async () => {
-    supabase._chain.single.mockResolvedValue({ data: null, error: null })
+  it('shows empty state when no category data', async () => {
+    supabase.rpc.mockResolvedValue({ data: [], error: null })
     render(<Overview />)
     await waitFor(() =>
       expect(screen.getByText(/no data yet/i)).toBeInTheDocument()

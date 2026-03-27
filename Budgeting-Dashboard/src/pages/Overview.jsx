@@ -43,10 +43,12 @@ export default function Overview() {
   // Load all data once on mount
   useEffect(() => {
     async function load() {
-      const [{ data: catData }, { data: incomeData }] = await Promise.all([
+      const [{ data: catData, error: catErr }, { data: incomeData, error: incomeErr }] = await Promise.all([
         supabase.rpc('get_monthly_category_totals'),
         supabase.rpc('get_monthly_income'),
       ])
+      if (catErr) console.error('get_monthly_category_totals failed:', catErr.message)
+      if (incomeErr) console.error('get_monthly_income failed:', incomeErr.message)
       const ps = [...new Set((catData ?? []).map(r => r.period))].sort()
       setAllCatData(catData ?? [])
       setAllIncomeData(incomeData ?? [])
@@ -64,6 +66,7 @@ export default function Overview() {
     supabase
       .from('transactions')
       .select('amount')
+      // Nursery sub-total: hardcoded description prefix matching production data
       .ilike('description', 'Vasco Nursery%')
       .gte('date', `${period}-01`)
       .lt('date', nextPeriodBoundary(period))
@@ -100,11 +103,7 @@ export default function Overview() {
     .sort((a, b) => b.size - a.size)
 
   // Monthly trend: true spend (bills + discretionary only) + 6-month rolling average
-  const allPeriods = allCatData
-    ? [...new Set(allCatData.map(r => r.period))].sort()
-    : []
-
-  const monthlyTrueSpend = allPeriods.map(p => {
+  const monthlyTrueSpend = periods.map(p => {
     const rows = allCatData.filter(r => r.period === p)
     const trueSpend = rows
       .filter(r => bucketCategory(r.category) !== 'transient')
@@ -126,7 +125,7 @@ export default function Overview() {
     }
   })
 
-  const loading = allCatData === null || allIncomeData === null || periodIndex === null
+  const loading = allCatData === null || allIncomeData === null
 
   if (loading) return <div className="text-[#B6A596] py-8">Loading…</div>
   if (periods.length === 0) return <div className="text-[#B6A596] py-8">No data yet. Upload a CSV to get started.</div>
