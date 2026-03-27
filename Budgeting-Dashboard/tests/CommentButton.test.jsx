@@ -15,7 +15,7 @@ vi.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
 }))
 
-import FlagButton from '../src/components/FlagButton'
+import CommentButton from '../src/components/CommentButton'
 import { supabase } from '../src/lib/supabase'
 
 beforeEach(() => {
@@ -25,30 +25,30 @@ beforeEach(() => {
   supabase._chain.select.mockReturnThis()
 })
 
-describe('FlagButton', () => {
-  it('renders unflagged by default', () => {
-    render(<FlagButton transactionId="tx-1" />)
-    const btn = screen.getByTitle('Flag transaction')
+describe('CommentButton', () => {
+  it('renders uncommented by default', () => {
+    render(<CommentButton transactionId="tx-1" />)
+    const btn = screen.getByTitle('Add a comment')
     expect(btn).toBeInTheDocument()
   })
 
-  it('shows flag count in title when flags exist', () => {
-    render(<FlagButton transactionId="tx-1" existingFlags={[{ id: 'f1', comment: 'check this' }]} />)
-    expect(screen.getByTitle('1 flag(s)')).toBeInTheDocument()
+  it('shows comment count in title when comments exist', () => {
+    render(<CommentButton transactionId="tx-1" existingFlags={[{ id: 'f1', comment: 'check this' }]} />)
+    expect(screen.getByTitle('1 comment(s)')).toBeInTheDocument()
   })
 
   it('opens comment panel when clicked', async () => {
-    render(<FlagButton transactionId="tx-1" />)
-    await userEvent.click(screen.getByTitle('Flag transaction'))
+    render(<CommentButton transactionId="tx-1" />)
+    await userEvent.click(screen.getByTitle('Add a comment'))
     expect(screen.getByPlaceholderText(/add a comment/i)).toBeInTheDocument()
   })
 
-  it('submits flag and closes panel', async () => {
+  it('submits comment and closes panel', async () => {
     supabase._chain.single.mockResolvedValue({
       data: { id: 'f2', comment: 'suspicious', user_id: 'user-1' },
     })
-    render(<FlagButton transactionId="tx-1" />)
-    await userEvent.click(screen.getByTitle('Flag transaction'))
+    render(<CommentButton transactionId="tx-1" />)
+    await userEvent.click(screen.getByTitle('Add a comment'))
     await userEvent.type(screen.getByPlaceholderText(/add a comment/i), 'suspicious')
     await userEvent.click(screen.getByText('Save'))
     await waitFor(() =>

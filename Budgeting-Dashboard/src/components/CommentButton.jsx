@@ -2,16 +2,16 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
-export default function FlagButton({ transactionId, existingFlags = [] }) {
+export default function CommentButton({ transactionId, existingFlags = [] }) {
   const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [comment, setComment] = useState('')
   const [flags, setFlags] = useState(existingFlags)
   const [saving, setSaving] = useState(false)
 
-  const isFlagged = flags.length > 0
+  const hasComments = flags.length > 0
 
-  async function submitFlag() {
+  async function submitComment() {
     if (!comment.trim()) return
     setSaving(true)
     const { data } = await supabase.from('flags').insert({
@@ -29,14 +29,15 @@ export default function FlagButton({ transactionId, existingFlags = [] }) {
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
+        title={hasComments ? `${flags.length} comment(s)` : 'Add a comment'}
         className={`text-xs font-medium uppercase tracking-widest px-2.5 py-1 rounded border transition-colors ${
-          isFlagged
+          hasComments
             ? 'border-[#DC9F85] text-[#DC9F85]'
             : 'border-[#66473B] text-[#B6A596] hover:border-[#DC9F85] hover:text-[#DC9F85]'
         }`}
         style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
       >
-        {isFlagged ? `FLAG (${flags.length})` : 'FLAG'}
+        {hasComments ? `COMMENT (${flags.length})` : 'COMMENT'}
       </button>
 
       {open && (
@@ -65,7 +66,7 @@ export default function FlagButton({ transactionId, existingFlags = [] }) {
               Cancel
             </button>
             <button
-              onClick={submitFlag}
+              onClick={submitComment}
               disabled={saving}
               className="flex-1 bg-[#DC9F85] text-[#181818] rounded py-1.5 text-xs font-bold uppercase tracking-widest disabled:opacity-50"
               style={{ fontFamily: "'Clash Grotesk', sans-serif" }}

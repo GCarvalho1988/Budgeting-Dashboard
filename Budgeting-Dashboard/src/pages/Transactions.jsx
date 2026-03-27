@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import FlagButton from '../components/FlagButton'
+import CommentButton from '../components/CommentButton'
 
 function formatGBP(n) {
   return `£${Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -202,7 +202,7 @@ export default function Transactions() {
                   </td>
                   <td className="px-5 py-3 text-right text-[#EBDCC4] font-medium">{formatGBP(tx.amount)}</td>
                   <td className="px-5 py-3 text-right">
-                    <FlagButton transactionId={tx.id} existingFlags={flags[tx.id] || []} />
+                    <CommentButton transactionId={tx.id} existingFlags={flags[tx.id] || []} />
                   </td>
                 </tr>
               ))}
