@@ -95,11 +95,11 @@ export default function YearVsYear() {
 
       setCatRows(
         categories.map(cat => {
-          const cur = byCatYear[`${cat}|${cy}`] ?? 0
-          const prev = byCatYear[`${cat}|${py}`] ?? 0
-          const delta = prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null
+          const cur = byCatYear[`${cat}|${cy}`] ?? null
+          const prev = byCatYear[`${cat}|${py}`] ?? null
+          const delta = prev !== null && prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null
           return { cat, cur, prev, delta }
-        }).sort((a, b) => b.cur - a.cur)
+        }).sort((a, b) => (b.cur ?? 0) - (a.cur ?? 0))
       )
 
       setLoading(false)
@@ -191,9 +191,11 @@ export default function YearVsYear() {
                   className={`border-b border-[#35211A] last:border-0 ${idx % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
                 >
                   <td className="px-5 py-2.5 text-[#EBDCC4]">{r.cat}</td>
-                  <td className="px-5 py-2.5 text-right text-[#B6A596]">{formatGBP(r.prev)}</td>
+                  <td className="px-5 py-2.5 text-right text-[#B6A596]">
+                    {r.prev !== null ? formatGBP(r.prev) : <span className="text-[#35211A]">—</span>}
+                  </td>
                   <td className="px-5 py-2.5 text-right text-[#EBDCC4] font-medium">
-                    {r.cur > 0 ? formatGBP(r.cur) : <span className="text-[#66473B]">~{formatGBP(monthAvg ?? 0)}</span>}
+                    {r.cur !== null ? formatGBP(r.cur) : <span className="text-[#66473B]">~{formatGBP(monthAvg ?? 0)}</span>}
                   </td>
                   <DeltaCell delta={r.delta} />
                 </tr>
