@@ -19,7 +19,7 @@ export const TRANSIENT_CATEGORIES = new Set([
   'Dulce Personal Purchases',
   'Dulce Work Expenses',
   'Gui Personal Purchases',
-  'Gui Work Expensss',
+  'Gui Work Expensss', // sic — matches the typo as it exists in production data
   'Transfers',
 ])
 
