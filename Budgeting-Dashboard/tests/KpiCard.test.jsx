@@ -13,14 +13,14 @@ describe('KpiCard', () => {
     render(<KpiCard label="Spend" value="£100" delta={12} deltaLabel="vs last month" />)
     const delta = screen.getByText(/12%/)
     expect(delta.textContent).toContain('↑')
-    expect(delta.className).toContain('red')
+    expect(delta.className).toContain('DC9F85')
   })
 
   it('shows downward arrow and green colour for negative delta (underspend)', () => {
     render(<KpiCard label="Spend" value="£100" delta={-8} deltaLabel="vs last month" />)
     const delta = screen.getByText(/8%/)
     expect(delta.textContent).toContain('↓')
-    expect(delta.className).toContain('green')
+    expect(delta.className).toContain('B6A596')
   })
 
   it('omits delta section when delta is not provided', () => {
