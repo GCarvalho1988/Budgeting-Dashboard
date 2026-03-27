@@ -117,7 +117,7 @@ export default function Categories() {
                 <p className="text-xl font-bold text-[#EBDCC4] mt-1" style={{ fontFamily: "'Clash Grotesk', sans-serif" }}>
                   {formatGBP(yoy.cyTotal)}
                 </p>
-                {yoy.delta !== null && (
+                {yoy.delta !== null && yoy.delta !== 0 && (
                   <p className={`text-xs mt-1 ${yoy.delta > 0 ? 'text-[#DC9F85]' : 'text-[#B6A596]'}`}>
                     {yoy.delta > 0 ? '↑' : '↓'} {Math.abs(yoy.delta)}% YoY
                   </p>
