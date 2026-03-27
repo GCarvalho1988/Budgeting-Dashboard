@@ -35,7 +35,7 @@ function Cell({ x, y, width, height, name, value, fill }) {
             fill="#181818"
             style={{ pointerEvents: 'none' }}
           >
-            £{Number(value).toLocaleString('en-GB', { maximumFractionDigits: 0 })}
+            £{isFinite(Number(value)) ? Number(value).toLocaleString('en-GB', { maximumFractionDigits: 0 }) : '—'}
           </text>
         </>
       )}
