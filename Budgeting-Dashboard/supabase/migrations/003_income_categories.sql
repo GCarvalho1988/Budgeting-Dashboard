@@ -28,6 +28,7 @@ CREATE POLICY "authenticated_read_income"
 
 -- 2. RPC: monthly totals per category (replaces .limit(10000) raw queries)
 -- Returns every period+category combination — no row limit.
+-- NOTE: amounts in the transactions table are stored as positive values (sign-flipped at ingest).
 CREATE OR REPLACE FUNCTION get_monthly_category_totals()
 RETURNS TABLE(period text, category text, total numeric)
 LANGUAGE sql STABLE
@@ -58,6 +59,7 @@ $$;
 
 -- 4. Recategorise existing PLATINUM M/C transactions
 -- These are 0% credit card repayments that were imported as 'Credit card payments'
+-- Safe to re-run: rows already recategorised will be touched again but the value is idempotent.
 UPDATE transactions
 SET category = '0% Credit Card Repayment'
 WHERE description ILIKE '%PLATINUM M/C%';
