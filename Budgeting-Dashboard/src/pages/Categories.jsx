@@ -16,11 +16,9 @@ export default function Categories() {
 
   useEffect(() => {
     supabase
-      .from('transactions')
-      .select('category')
-      .limit(10000)
+      .rpc('get_distinct_categories')
       .then(({ data }) => {
-        const cats = [...new Set(data?.map(t => t.category))].sort()
+        const cats = data?.map(r => r.category) ?? []
         setCategories(cats)
         if (cats.length) setSelected(cats[0])
         setLoading(false)
