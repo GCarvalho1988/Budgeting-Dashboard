@@ -59,7 +59,7 @@ export default function YearVsYear() {
 
   if (loading) return <div className="text-[#B6A596] py-8">Loading…</div>
 
-  const cy = basisYear ? basisYear + 1 : null
+  const cy = years.length > 0 ? Number(years[years.length - 1]) : null
   const py = basisYear
 
   const byYearMonth = {}
