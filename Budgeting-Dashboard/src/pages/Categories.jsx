@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { BILLS_CATEGORIES, TRANSIENT_CATEGORIES, bucketCategory } from '../lib/categories'
 import MonthlyTrendChart from '../components/MonthlyTrendChart'
 
 function formatGBP(n) {
@@ -7,14 +8,14 @@ function formatGBP(n) {
 }
 
 export default function Categories() {
-  const [categories, setCategories] = useState([])
-  const [selected, setSelected]     = useState(null)
-  const [monthData, setMonthData]   = useState([])
-  const [yoy, setYoy]               = useState(null)
+  const [sections, setSections]         = useState([])
+  const [selected, setSelected]         = useState(null)
+  const [monthData, setMonthData]       = useState([])
+  const [yoy, setYoy]                   = useState(null)
   const [transactions, setTransactions] = useState([])
-  const [loading, setLoading]       = useState(true)
+  const [loading, setLoading]           = useState(true)
 
-  // Load distinct categories from both transactions and income tables
+  // Load and bucket categories from both tables
   useEffect(() => {
     async function loadCategories() {
       const [rpcResult, incResult] = await Promise.all([
@@ -22,16 +23,26 @@ export default function Categories() {
         supabase.from('income').select('category').order('category'),
       ])
       const txCats  = (rpcResult.data ?? []).map(r => r.category)
-      const incCats = (incResult.data ?? []).map(r => r.category)
-      const cats    = [...new Set([...txCats, ...incCats])].sort()
-      setCategories(cats)
-      if (cats.length) setSelected(cats[0])
+      const incCats = [...new Set((incResult.data ?? []).map(r => r.category))].sort()
+      const incSet  = new Set(incCats)
+
+      const built = [
+        { key: 'income',        label: 'Income',        categories: incCats },
+        { key: 'bills',         label: 'Bills & Fixed', categories: txCats.filter(c => !incSet.has(c) && BILLS_CATEGORIES.has(c)).sort() },
+        { key: 'discretionary', label: 'Discretionary', categories: txCats.filter(c => !incSet.has(c) && bucketCategory(c) === 'discretionary').sort() },
+        { key: 'transfers',     label: 'Transfers',     categories: txCats.filter(c => !incSet.has(c) && TRANSIENT_CATEGORIES.has(c)).sort() },
+      ].filter(s => s.categories.length > 0)
+
+      setSections(built)
+      const firstIncome  = incCats[0]
+      const firstOverall = built[0]?.categories[0] ?? null
+      setSelected(firstIncome ?? firstOverall)
       setLoading(false)
     }
     loadCategories()
   }, [])
 
-  // Load transactions from both tables for selected category
+  // Load transactions (both tables) for selected category
   useEffect(() => {
     if (!selected) return
     async function load() {
@@ -52,7 +63,6 @@ export default function Categories() {
 
       const combined = [...(txResult.data ?? []), ...(incResult.data ?? [])]
         .sort((a, b) => b.date.localeCompare(a.date))
-
       setTransactions(combined)
 
       const monthMap = {}
@@ -75,8 +85,8 @@ export default function Categories() {
         byYear[yr] = (byYear[yr] || 0) + Number(t.amount)
       })
       const years = Object.keys(byYear).sort()
-      const cy  = years[years.length - 1]
-      const py  = String(Number(cy) - 1)
+      const cy = years[years.length - 1]
+      const py = String(Number(cy) - 1)
       const yoyDelta = byYear[py]
         ? Math.round(((byYear[cy] - byYear[py]) / byYear[py]) * 100)
         : null
@@ -91,17 +101,36 @@ export default function Categories() {
 
   return (
     <div className="space-y-6">
-      {/* Category dropdown */}
-      <select
-        value={selected ?? ''}
-        onChange={e => setSelected(e.target.value)}
-        className="bg-[#181818] border border-[#66473B] text-[#EBDCC4] text-sm rounded px-3 py-2 focus:border-[#DC9F85] focus:outline-none w-full max-w-xs"
-      >
-        {categories.map(cat => (
-          <option key={cat} value={cat}>{cat}</option>
+      {/* Grouped category cards */}
+      <div className="space-y-4">
+        {sections.map(section => (
+          <div key={section.key}>
+            <p
+              className="text-xs font-semibold text-[#66473B] uppercase tracking-widest mb-2"
+              style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+            >
+              {section.label}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {section.categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelected(cat)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium tracking-wide border transition-colors ${
+                    selected === cat
+                      ? 'border-[#DC9F85] text-[#DC9F85]'
+                      : 'border-[#66473B] text-[#B6A596] hover:border-[#B6A596]'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
-      </select>
+      </div>
 
+      {/* Detail panel */}
       {selected && (
         <>
           {yoy && (

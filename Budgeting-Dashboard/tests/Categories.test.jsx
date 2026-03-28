@@ -7,20 +7,17 @@ beforeAll(() => {
 })
 
 vi.mock('../src/lib/supabase', () => {
-  const makeChain = () => {
-    const chain = {}
-    const methods = ['select', 'eq', 'order', 'limit', 'not']
-    methods.forEach(m => { chain[m] = vi.fn(() => chain) })
-    chain.then = vi.fn(cb => Promise.resolve(cb({ data: [] })))
-    return chain
-  }
-  const txChain  = makeChain()
-  const incChain = makeChain()
+  const makeChain = (data = []) => ({
+    select: vi.fn().mockReturnThis(),
+    eq:     vi.fn().mockReturnThis(),
+    order:  vi.fn().mockReturnThis(),
+    limit:  vi.fn().mockReturnThis(),
+    then:   vi.fn(cb => Promise.resolve(cb({ data }))),
+  })
   const supabase = {
     rpc: vi.fn(),
-    from: vi.fn(table => table === 'income' ? incChain : txChain),
-    _txChain: txChain,
-    _incChain: incChain,
+    from: vi.fn(),
+    _makeChain: makeChain,
   }
   return { supabase }
 })
@@ -30,37 +27,52 @@ import { supabase } from '../src/lib/supabase'
 
 beforeEach(() => {
   vi.clearAllMocks()
-  ;[supabase._txChain, supabase._incChain].forEach(chain => {
-    const methods = ['select', 'eq', 'order', 'limit', 'not']
-    methods.forEach(m => { if (chain[m].mockReset) { chain[m].mockReset(); chain[m].mockReturnValue(chain) } })
-    chain.then.mockReset()
-    chain.then.mockImplementation(cb => Promise.resolve(cb({ data: [] })))
-  })
-  supabase.from.mockImplementation(table => table === 'income' ? supabase._incChain : supabase._txChain)
+  supabase.from.mockReturnValue(supabase._makeChain())
 })
 
 describe('Categories', () => {
   it('shows loading state initially', () => {
     supabase.rpc.mockReturnValue(new Promise(() => {}))
-    supabase._incChain.then.mockReturnValue(new Promise(() => {}))
+    supabase.from.mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq:     vi.fn().mockReturnThis(),
+      order:  vi.fn().mockReturnThis(),
+      limit:  vi.fn().mockReturnThis(),
+      then:   vi.fn(() => new Promise(() => {})),
+    })
     render(<Categories />)
     expect(screen.getByText(/loading/i)).toBeInTheDocument()
   })
 
-  it('renders a select dropdown with categories from both tables', async () => {
+  it('renders section headings after load', async () => {
     supabase.rpc.mockResolvedValue({
-      data: [{ category: 'Groceries' }, { category: 'Dining' }],
+      data: [{ category: 'Groceries' }, { category: 'Mortgage' }],
       error: null,
     })
-    supabase._incChain.then.mockImplementation(cb =>
-      Promise.resolve(cb({ data: [{ category: 'Salary' }] }))
-    )
+    supabase.from.mockImplementation(table => {
+      if (table === 'income') {
+        return supabase._makeChain([{ category: 'Salary' }])
+      }
+      return supabase._makeChain([])
+    })
     render(<Categories />)
-    await waitFor(() => expect(screen.getByRole('combobox')).toBeInTheDocument())
-    const options = screen.getAllByRole('option')
-    const texts = options.map(o => o.textContent)
-    expect(texts).toContain('Dining')
-    expect(texts).toContain('Groceries')
-    expect(texts).toContain('Salary')
+    await waitFor(() => expect(screen.getByText('Income')).toBeInTheDocument())
+    expect(screen.getByText('Bills & Fixed')).toBeInTheDocument()
+    expect(screen.getByText('Discretionary')).toBeInTheDocument()
+  })
+
+  it('renders category cards in the correct sections', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: [{ category: 'Groceries' }, { category: 'Mortgage' }],
+      error: null,
+    })
+    supabase.from.mockImplementation(table => {
+      if (table === 'income') return supabase._makeChain([{ category: 'Salary' }])
+      return supabase._makeChain([])
+    })
+    render(<Categories />)
+    await waitFor(() => expect(screen.getByText('Salary')).toBeInTheDocument())
+    expect(screen.getByText('Mortgage')).toBeInTheDocument()
+    expect(screen.getByText('Groceries')).toBeInTheDocument()
   })
 })
