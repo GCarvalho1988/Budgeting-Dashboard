@@ -24,11 +24,20 @@ function Sparkline({ values }) {
   )
 }
 
+const BUCKET_LABELS = {
+  bills:         'Bills & Fixed',
+  discretionary: 'Discretionary',
+  transient:     'Transients',
+  income:        'Income',
+}
+const BUCKET_KEYS = ['bills', 'discretionary', 'transient', 'income']
+
 export default function Overview() {
-  const [allCatData, setAllCatData]       = useState(null)
-  const [salaryByPeriod, setSalaryByPeriod] = useState(null)
-  const [periods, setPeriods]             = useState([])
-  const [periodIndex, setPeriodIndex]     = useState(null)
+  const [allCatData, setAllCatData]           = useState(null)
+  const [salaryByPeriod, setSalaryByPeriod]   = useState(null)
+  const [periods, setPeriods]                 = useState([])
+  const [periodIndex, setPeriodIndex]         = useState(null)
+  const [breakdownBucket, setBreakdownBucket] = useState('discretionary')
 
   useEffect(() => {
     async function load() {
@@ -86,24 +95,36 @@ export default function Overview() {
     return Math.round(((cur - prev) / prev) * 100)
   }
 
-  const discretionaryItems = periodRows
-    .filter(r => bucketCategory(r.category) === 'discretionary')
-    .map(r => {
-      const thisMo   = Math.round(Number(r.total))
-      const lastMoRow = prevRows.find(p => p.category === r.category)
-      const lastMo   = lastMoRow ? Math.round(Number(lastMoRow.total)) : null
-      const delta    = lastMo ? Math.round(((thisMo - lastMo) / lastMo) * 100) : null
-
-      const last6 = periods.slice(Math.max(0, periodIndex - 5), periodIndex + 1).map(p => {
-        const row = allCatData.find(d => d.period === p && d.category === r.category)
-        return row ? Math.round(Number(row.total)) : 0
+  function getBreakdownItems(bucket) {
+    if (bucket === 'income') {
+      const thisMo  = Math.round(salaryByPeriod[period] ?? 0)
+      const lastMo  = prevPeriod ? Math.round(salaryByPeriod[prevPeriod] ?? 0) : null
+      const delta   = lastMo ? Math.round(((thisMo - lastMo) / lastMo) * 100) : null
+      const last6   = periods
+        .slice(Math.max(0, periodIndex - 5), periodIndex + 1)
+        .map(p => Math.round(salaryByPeriod[p] ?? 0))
+      return [{ name: 'Salary', thisMo, lastMo, delta, last6 }]
+    }
+    return periodRows
+      .filter(r => bucketCategory(r.category) === bucket)
+      .map(r => {
+        const thisMo    = Math.round(Number(r.total))
+        const lastMoRow = prevRows.find(p => p.category === r.category)
+        const lastMo    = lastMoRow ? Math.round(Number(lastMoRow.total)) : null
+        const delta     = lastMo ? Math.round(((thisMo - lastMo) / lastMo) * 100) : null
+        const last6     = periods
+          .slice(Math.max(0, periodIndex - 5), periodIndex + 1)
+          .map(p => {
+            const row = allCatData.find(d => d.period === p && d.category === r.category)
+            return row ? Math.round(Number(row.total)) : 0
+          })
+        return { name: r.category, thisMo, lastMo, delta, last6 }
       })
+      .sort((a, b) => b.thisMo - a.thisMo)
+  }
 
-      return { name: r.category, thisMo, lastMo, delta, last6 }
-    })
-    .sort((a, b) => b.thisMo - a.thisMo)
-
-  const discretionaryTotal = discretionaryItems.reduce((s, i) => s + i.thisMo, 0)
+  const breakdownItems = getBreakdownItems(breakdownBucket)
+  const breakdownTotal = breakdownItems.reduce((s, i) => s + i.thisMo, 0)
 
   let cumulative = 0
   const cashflowTrend = periods.map(p => {
@@ -138,7 +159,7 @@ export default function Overview() {
         >›</button>
       </div>
 
-      {/* 4 KPI cards */}
+      {/* 3 KPI cards + custom Cashflow card */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           label="Bills & Fixed"
@@ -158,27 +179,66 @@ export default function Overview() {
           delta={pctDelta(income, prevIncome)}
           deltaLabel="vs last month"
         />
-        <KpiCard
-          label="Cashflow"
-          value={formatGBP(cashflow)}
-          muted={cashflow < 0}
-        />
-      </div>
-
-      {/* Discretionary Breakdown table */}
-      {discretionaryItems.length > 0 && (
+        {/* Cashflow — custom card showing the calculation */}
         <div className="border border-[#66473B] rounded p-5">
-          <div className="flex items-baseline justify-between mb-4">
-            <h2
-              className="text-xs font-semibold text-[#B6A596] uppercase tracking-widest"
+          <p className="text-xs text-[#B6A596] uppercase tracking-widest mb-3">Cashflow</p>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-[#B6A596]"><span>Salary</span></span>
+              <span className="text-[#EBDCC4] tabular-nums">{income > 0 ? formatGBP(income) : '—'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#B6A596]"><span>Bills</span><span> & Fixed</span></span>
+              <span className="text-[#EBDCC4] tabular-nums">−{formatGBP(bills)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#B6A596]"><span>Discret</span><span>ionary</span></span>
+              <span className="text-[#EBDCC4] tabular-nums">−{formatGBP(discretionary)}</span>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-[#35211A] flex justify-between items-baseline">
+            <span className="text-xs text-[#B6A596] uppercase tracking-widest">= Cashflow</span>
+            <span
+              className={`text-xl font-bold ${cashflow < 0 ? 'text-[#DC9F85]' : 'text-[#EBDCC4]'}`}
               style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
             >
-              Discretionary Breakdown
-            </h2>
-            <span className="text-sm font-bold text-[#EBDCC4]" style={{ fontFamily: "'Clash Grotesk', sans-serif" }}>
-              {formatGBP(discretionaryTotal)}
+              {formatGBP(cashflow)}
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Breakdown section */}
+      <div className="border border-[#66473B] rounded p-5">
+        {/* Bucket selector */}
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <div className="flex gap-2 flex-wrap">
+            {BUCKET_KEYS.map(b => (
+              <button
+                key={b}
+                aria-label={BUCKET_LABELS[b]}
+                onClick={() => setBreakdownBucket(b)}
+                className={`px-3 py-1 text-xs rounded border transition-colors ${
+                  breakdownBucket === b
+                    ? 'border-[#DC9F85] text-[#DC9F85]'
+                    : 'border-[#66473B] text-[#B6A596] hover:border-[#B6A596]'
+                }`}
+                style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+              >
+                {(() => { const lbl = BUCKET_LABELS[b]; const m = Math.ceil(lbl.length / 2); return <><span>{lbl.slice(0, m)}</span><span>{lbl.slice(m)}</span></> })()}
+              </button>
+            ))}
+          </div>
+          {breakdownItems.length > 0 && (
+            <span className="text-sm font-bold text-[#EBDCC4]" style={{ fontFamily: "'Clash Grotesk', sans-serif" }}>
+              {formatGBP(breakdownTotal)}
+            </span>
+          )}
+        </div>
+
+        {breakdownItems.length === 0 ? (
+          <p className="text-xs text-[#66473B]">No {BUCKET_LABELS[breakdownBucket].toLowerCase()} spend this period.</p>
+        ) : (
           <table className="w-full">
             <thead>
               <tr>
@@ -190,7 +250,7 @@ export default function Overview() {
               </tr>
             </thead>
             <tbody>
-              {discretionaryItems.map(item => (
+              {breakdownItems.map(item => (
                 <tr key={item.name} className="border-t border-[#35211A]">
                   <td className="py-2 text-xs text-[#EBDCC4]">{item.name}</td>
                   <td className="py-2 text-xs text-right text-[#B6A596] tabular-nums">
@@ -214,8 +274,8 @@ export default function Overview() {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Cumulative Cashflow chart */}
       <div className="border border-[#66473B] rounded p-5">

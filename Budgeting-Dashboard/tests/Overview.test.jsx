@@ -44,7 +44,7 @@ describe('Overview', () => {
     )
   })
 
-  it('renders Bills, Discretionary, Income, Cashflow cards after load', async () => {
+  it('renders Bills, Discretionary, Income, Cashflow sections after load', async () => {
     supabase.rpc.mockResolvedValue({
       data: [
         { period: '2025-01', category: 'Mortgage', total: 1200 },
@@ -52,7 +52,6 @@ describe('Overview', () => {
       ],
       error: null,
     })
-    // Salary query via from('income')
     supabase.from.mockReturnValue(
       makeFromChain([{ date: '2025-01-25', amount: 4000 }])
     )
@@ -62,5 +61,33 @@ describe('Overview', () => {
     expect(screen.getByText('Income')).toBeInTheDocument()
     expect(screen.getByText('Cashflow')).toBeInTheDocument()
     expect(screen.queryByText('Transfers')).not.toBeInTheDocument()
+  })
+
+  it('renders breakdown bucket selector buttons', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: [{ period: '2025-01', category: 'Groceries', total: 300 }],
+      error: null,
+    })
+    supabase.from.mockReturnValue(makeFromChain([{ date: '2025-01-25', amount: 4000 }]))
+    render(<Overview />)
+    await waitFor(() => expect(screen.getByText('Discretionary')).toBeInTheDocument())
+    // Bucket selector buttons should be present
+    expect(screen.getByRole('button', { name: /bills & fixed/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /transients/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /income/i })).toBeInTheDocument()
+  })
+
+  it('shows cashflow math breakdown (Income, Bills & Fixed, Discretionary lines)', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: [
+        { period: '2025-01', category: 'Mortgage', total: 1200 },
+        { period: '2025-01', category: 'Groceries', total: 300 },
+      ],
+      error: null,
+    })
+    supabase.from.mockReturnValue(makeFromChain([{ date: '2025-01-25', amount: 4000 }]))
+    render(<Overview />)
+    await waitFor(() => expect(screen.getByText('Cashflow')).toBeInTheDocument())
+    expect(screen.getByText('= Cashflow')).toBeInTheDocument()
   })
 })
