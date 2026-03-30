@@ -7,20 +7,20 @@ function formatGBP(n) {
   return `£${Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-// Only these 4 categories are shown in Review
+// Only these categories are shown in Review
 const REVIEW_CATEGORIES = [
   'Clothing & shoes',
-  'General Merchandise',
+  'General merchandise',
   'Dulce Personal Purchases',
   'Dulce Work Expenses',
 ]
 
-// Categories that are already resolved — pre-populate tagged list on load
+// Categories that arrive pre-tagged — pre-populate tagged list on load
 const ALREADY_TAGGED = ['Dulce Personal Purchases', 'Dulce Work Expenses']
 
 const SORT_ORDER = [
   'Clothing & shoes',
-  'General Merchandise',
+  'General merchandise',
   'Dulce Personal Purchases',
   'Dulce Work Expenses',
 ]
@@ -30,7 +30,6 @@ function sortTransactions(txs) {
   for (const cat of SORT_ORDER) {
     result.push(...txs.filter(t => t.category === cat).sort((a, b) => b.date.localeCompare(a.date)))
   }
-  // Any category not in SORT_ORDER (shouldn't happen, but safe)
   const rest = txs
     .filter(t => !SORT_ORDER.includes(t.category))
     .sort((a, b) => a.category.localeCompare(b.category) || b.date.localeCompare(a.date))
@@ -44,6 +43,16 @@ export default function Review() {
   const [tagged, setTagged]           = useState([]) // { tx, tag: 'personal' | 'work' }
   const [claim, setClaim]             = useState(null)
   const [loading, setLoading]         = useState(true)
+  const [expandedTagId, setExpandedTagId] = useState(null)
+  const [allCategories, setAllCategories] = useState([])
+
+  // Load all distinct categories for the retag dropdown
+  useEffect(() => {
+    supabase.rpc('get_distinct_categories').then(({ data }) => {
+      const cats = (data ?? []).map(r => r.category).sort()
+      setAllCategories(cats)
+    })
+  }, [])
 
   useEffect(() => {
     supabase
@@ -66,6 +75,7 @@ export default function Review() {
     setPending([])
     setTagged([])
     setClaim(null)
+    setExpandedTagId(null)
 
     Promise.all([
       supabase
@@ -81,7 +91,7 @@ export default function Review() {
         .select('id, date, description, amount, category')
         .gte('date', `${period}-01`)
         .lt('date', nextPeriodBoundary(period))
-        .filter('category', 'in', `(${REVIEW_CATEGORIES.map(c => `"${c}"`).join(',')})`)
+        .in('category', REVIEW_CATEGORIES)
         .then(({ data, error }) => {
           if (error) { console.error('transactions query failed:', error.message); return [] }
           return data ?? []
@@ -108,44 +118,62 @@ export default function Review() {
     setPending(prev => prev.filter(t => t.id !== tx.id))
   }
 
-  async function tagPersonal(tx) {
+  async function tagAs(tx, tag) {
+    const newCat = tag === 'personal' ? 'Dulce Personal Purchases' : 'Dulce Work Expenses'
     const { error } = await supabase
       .from('transactions')
-      .update({ category: 'Dulce Personal Purchases' })
+      .update({ category: newCat })
       .eq('id', tx.id)
     if (!error) {
       setPending(prev => prev.filter(t => t.id !== tx.id))
-      setTagged(prev => [...prev, { tx: { ...tx, category: 'Dulce Personal Purchases' }, tag: 'personal' }])
+      setTagged(prev => [...prev, { tx: { ...tx, category: newCat }, tag }])
     }
   }
 
-  async function tagWork(tx) {
+  async function retag(tx, newCategory) {
     const { error } = await supabase
       .from('transactions')
-      .update({ category: 'Dulce Work Expenses' })
+      .update({ category: newCategory })
       .eq('id', tx.id)
     if (!error) {
-      setPending(prev => prev.filter(t => t.id !== tx.id))
-      setTagged(prev => [...prev, { tx: { ...tx, category: 'Dulce Work Expenses' }, tag: 'work' }])
+      const newTag = newCategory === 'Dulce Personal Purchases'
+        ? 'personal'
+        : newCategory === 'Dulce Work Expenses'
+          ? 'work'
+          : null
+
+      if (newTag) {
+        // Stay in tagged list with updated tag
+        setTagged(prev => prev.map(t =>
+          t.tx.id === tx.id ? { tx: { ...t.tx, category: newCategory }, tag: newTag } : t
+        ))
+      } else {
+        // Move back to pending
+        setTagged(prev => prev.filter(t => t.tx.id !== tx.id))
+        setPending(prev => sortTransactions([...prev, { ...tx, category: newCategory }]))
+      }
+      setExpandedTagId(null)
     }
   }
 
-  const totalPersonal = tagged
-    .filter(t => t.tag === 'personal')
-    .reduce((s, t) => s + Number(t.tx.amount), 0)
-  const totalWork = tagged
-    .filter(t => t.tag === 'work')
-    .reduce((s, t) => s + Number(t.tx.amount), 0)
+  // Summary stats — split by spend (positive) and credits (negative)
+  const personalTxs  = tagged.filter(t => t.tag === 'personal')
+  const personalSpend = personalTxs.filter(t => Number(t.tx.amount) > 0).reduce((s, t) => s + Number(t.tx.amount), 0)
+  const personalIn    = personalTxs.filter(t => Number(t.tx.amount) < 0).reduce((s, t) => s + Math.abs(Number(t.tx.amount)), 0)
+
+  const workTxs   = tagged.filter(t => t.tag === 'work')
+  const workSpend = workTxs.filter(t => Number(t.tx.amount) > 0).reduce((s, t) => s + Number(t.tx.amount), 0)
+  const workIn    = workTxs.filter(t => Number(t.tx.amount) < 0).reduce((s, t) => s + Math.abs(Number(t.tx.amount)), 0)
 
   async function markPersonalActioned() {
     const { error } = await supabase
       .from('expense_claims')
       .upsert(
-        { period, total_personal: totalPersonal, total_work: claim?.total_work ?? totalWork, personal_actioned_at: new Date().toISOString() },
+        { period, total_personal: personalSpend, total_work: claim?.total_work ?? workSpend, personal_actioned_at: new Date().toISOString() },
         { onConflict: 'period' }
       )
     if (!error) setClaim(prev => ({
-      ...(prev ?? { period, total_personal: totalPersonal, total_work: totalWork }),
+      ...(prev ?? { period, total_personal: personalSpend, total_work: workSpend }),
       personal_actioned_at: new Date().toISOString(),
     }))
   }
@@ -154,11 +182,11 @@ export default function Review() {
     const { error } = await supabase
       .from('expense_claims')
       .upsert(
-        { period, total_personal: claim?.total_personal ?? totalPersonal, total_work: totalWork, work_actioned_at: new Date().toISOString() },
+        { period, total_personal: claim?.total_personal ?? personalSpend, total_work: workSpend, work_actioned_at: new Date().toISOString() },
         { onConflict: 'period' }
       )
     if (!error) setClaim(prev => ({
-      ...(prev ?? { period, total_personal: totalPersonal, total_work: totalWork }),
+      ...(prev ?? { period, total_personal: personalSpend, total_work: workSpend }),
       work_actioned_at: new Date().toISOString(),
     }))
   }
@@ -206,15 +234,53 @@ export default function Review() {
                   <p className="text-sm text-[#EBDCC4] truncate">{tx.description}</p>
                   <p className="text-xs text-[#66473B] mt-0.5">{tx.date} · <span className="text-[#B6A596]">{tx.category}</span></p>
                 </div>
-                <p className="text-sm font-medium text-[#EBDCC4] shrink-0">{formatGBP(tx.amount)}</p>
-                <span
-                  className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded shrink-0 ${
-                    tag === 'personal' ? 'bg-[#DC9F85] text-[#181818]' : 'border border-[#DC9F85] text-[#DC9F85]'
-                  }`}
-                  style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
-                >
-                  {tag === 'personal' ? 'Personal' : 'Work'}
-                </span>
+                <p className={`text-sm font-medium shrink-0 ${Number(tx.amount) < 0 ? 'text-[#B6A596]' : 'text-[#EBDCC4]'}`}>
+                  {Number(tx.amount) < 0 ? '+' : ''}{formatGBP(Math.abs(Number(tx.amount)))}
+                </p>
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setExpandedTagId(id => id === tx.id ? null : tx.id)}
+                    className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded hover:opacity-80 transition-opacity ${
+                      tag === 'personal' ? 'bg-[#DC9F85] text-[#181818]' : 'border border-[#DC9F85] text-[#DC9F85]'
+                    }`}
+                    style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+                  >
+                    {tag === 'personal' ? 'Personal' : 'Work'} ▾
+                  </button>
+                  {expandedTagId === tx.id && (
+                    <div className="absolute right-0 top-full mt-1 z-10 bg-[#1F1410] border border-[#66473B] rounded shadow-lg flex flex-col min-w-max max-h-64 overflow-y-auto">
+                      {tag !== 'personal' && (
+                        <button
+                          onClick={() => retag(tx, 'Dulce Personal Purchases')}
+                          className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-left bg-[#DC9F85]/10 text-[#DC9F85] hover:bg-[#DC9F85]/20 border-b border-[#35211A]"
+                          style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+                        >Personal</button>
+                      )}
+                      {tag !== 'work' && (
+                        <button
+                          onClick={() => retag(tx, 'Dulce Work Expenses')}
+                          className="px-4 py-2 text-xs font-medium uppercase tracking-widest text-left text-[#DC9F85] hover:bg-[#DC9F85]/10 border-b border-[#35211A]"
+                          style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+                        >Work</button>
+                      )}
+                      {allCategories
+                        .filter(c => c !== 'Dulce Personal Purchases' && c !== 'Dulce Work Expenses' && c !== tx.category)
+                        .map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => retag(tx, cat)}
+                            className="px-4 py-2 text-xs text-left text-[#B6A596] hover:bg-white/[0.05] border-b border-[#35211A] last:border-0"
+                            style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+                          >↩ {cat}</button>
+                        ))
+                      }
+                      <button
+                        onClick={() => setExpandedTagId(null)}
+                        className="px-4 py-2 text-xs text-left text-[#66473B] hover:bg-white/[0.05]"
+                      >✕ Close</button>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
             {/* Pending items */}
@@ -227,15 +293,17 @@ export default function Review() {
                   <p className="text-sm text-[#EBDCC4] truncate">{tx.description}</p>
                   <p className="text-xs text-[#66473B] mt-0.5">{tx.date} · <span className="text-[#B6A596]">{tx.category}</span></p>
                 </div>
-                <p className="text-sm font-medium text-[#EBDCC4] shrink-0">{formatGBP(tx.amount)}</p>
+                <p className={`text-sm font-medium shrink-0 ${Number(tx.amount) < 0 ? 'text-[#B6A596]' : 'text-[#EBDCC4]'}`}>
+                  {Number(tx.amount) < 0 ? '+' : ''}{formatGBP(Math.abs(Number(tx.amount)))}
+                </p>
                 <div className="flex gap-2 shrink-0">
                   <button
-                    onClick={() => tagPersonal(tx)}
+                    onClick={() => tagAs(tx, 'personal')}
                     className="text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded bg-[#DC9F85] text-[#181818] hover:opacity-90 transition-opacity"
                     style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
                   >Personal</button>
                   <button
-                    onClick={() => tagWork(tx)}
+                    onClick={() => tagAs(tx, 'work')}
                     className="text-xs font-medium uppercase tracking-widest px-3 py-1.5 rounded border border-[#DC9F85] text-[#DC9F85] hover:bg-[#DC9F85]/10 transition-colors"
                     style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
                   >Work</button>
@@ -252,7 +320,7 @@ export default function Review() {
       </div>
 
       {/* Summary table */}
-      {(totalPersonal > 0 || totalWork > 0) && (
+      {(personalSpend > 0 || personalIn > 0 || workSpend > 0 || workIn > 0) && (
         <div className="border border-[#66473B] rounded p-5">
           <h2
             className="text-xs font-semibold text-[#B6A596] uppercase tracking-widest mb-4"
@@ -261,11 +329,24 @@ export default function Review() {
             Transfers this period
           </h2>
           <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#35211A]">
+                <th className="pb-2 text-xs text-[#66473B] text-left font-normal"></th>
+                <th className="pb-2 text-xs text-[#66473B] text-right font-normal">Spend</th>
+                <th className="pb-2 text-xs text-[#66473B] text-right font-normal pl-4">Transferred in</th>
+                <th></th>
+              </tr>
+            </thead>
             <tbody>
-              {totalPersonal > 0 && (
+              {(personalSpend > 0 || personalIn > 0) && (
                 <tr className="border-b border-[#35211A] last:border-0">
-                  <td className="py-2 text-xs text-[#B6A596]">Personal transfer</td>
-                  <td className="py-2 text-xs text-right font-medium text-[#EBDCC4] tabular-nums">{formatGBP(totalPersonal)}</td>
+                  <td className="py-2 text-xs text-[#B6A596]">Personal</td>
+                  <td className="py-2 text-xs text-right font-medium text-[#EBDCC4] tabular-nums">
+                    {personalSpend > 0 ? formatGBP(personalSpend) : <span className="text-[#35211A]">—</span>}
+                  </td>
+                  <td className="py-2 text-xs text-right font-medium text-[#B6A596] tabular-nums pl-4">
+                    {personalIn > 0 ? formatGBP(personalIn) : <span className="text-[#35211A]">—</span>}
+                  </td>
                   <td className="py-2 text-right pl-4">
                     {claim?.personal_actioned_at ? (
                       <span className="text-xs text-[#66473B] uppercase tracking-widest">✓ Done</span>
@@ -279,10 +360,15 @@ export default function Review() {
                   </td>
                 </tr>
               )}
-              {totalWork > 0 && (
+              {(workSpend > 0 || workIn > 0) && (
                 <tr className="border-b border-[#35211A] last:border-0">
                   <td className="py-2 text-xs text-[#B6A596]">Work claim</td>
-                  <td className="py-2 text-xs text-right font-medium text-[#EBDCC4] tabular-nums">{formatGBP(totalWork)}</td>
+                  <td className="py-2 text-xs text-right font-medium text-[#EBDCC4] tabular-nums">
+                    {workSpend > 0 ? formatGBP(workSpend) : <span className="text-[#35211A]">—</span>}
+                  </td>
+                  <td className="py-2 text-xs text-right font-medium text-[#B6A596] tabular-nums pl-4">
+                    {workIn > 0 ? formatGBP(workIn) : <span className="text-[#35211A]">—</span>}
+                  </td>
                   <td className="py-2 text-right pl-4">
                     {claim?.work_actioned_at ? (
                       <span className="text-xs text-[#66473B] uppercase tracking-widest">✓ Done</span>

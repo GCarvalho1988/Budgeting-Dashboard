@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { bucketCategory } from '../lib/categories'
-import { fetchCpiRates, cpiAdjustMonth } from '../lib/ons'
+import { fetchCpiRates, cpiAdjustToLatest } from '../lib/ons'
 
 function formatGBP(n) {
   return `£${Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
@@ -94,7 +94,7 @@ export default function YearVsYear() {
     if (yr === py && !cyMonths.has(m)) return
     let amount = Number(total)
     if (inflationAdj && yr === py) {
-      amount = cpiAdjustMonth(amount, `${cy}-${m}`, cpiRates)
+      amount = cpiAdjustToLatest(amount, py, cpiRates)
     }
     const key = `${category}|${yr}`
     byCatYear[key] = (byCatYear[key] || 0) + amount
@@ -106,7 +106,7 @@ export default function YearVsYear() {
     const cur     = byYearMonth[cy]?.[mo] ?? null
     const rawPrev = byYearMonth[py]?.[mo] ?? null
     const prev    = inflationAdj && rawPrev !== null
-      ? Math.round(cpiAdjustMonth(rawPrev, `${cy}-${mm}`, cpiRates))
+      ? Math.round(cpiAdjustToLatest(rawPrev, py, cpiRates))
       : rawPrev
     const delta   = cur !== null && prev !== null ? Math.round(((cur - prev) / prev) * 100) : null
     return { label, cur, prev, delta }
@@ -165,12 +165,10 @@ export default function YearVsYear() {
             CPI adjusted
           </span>
           {inflationAdj && (() => {
-            const covered = sortedCyMonthNums.filter(m => cpiRates[`${cy}-${String(m).padStart(2,'0')}`] !== undefined)
-            if (covered.length === sortedCyMonthNums.length) return null
-            const note = covered.length === 0
-              ? `no ${cy} CPI data`
-              : `CPI through ${MONTHS[covered[covered.length - 1] - 1]}`
-            return <span className="text-xs text-[#DC9F85]">({note})</span>
+            const sortedKeys = Object.keys(cpiRates).sort()
+            if (sortedKeys.length === 0) return <span className="text-xs text-[#DC9F85]">(no CPI data)</span>
+            const [latestY, latestM] = sortedKeys[sortedKeys.length - 1].split('-')
+            return <span className="text-xs text-[#66473B]">({MONTHS[Number(latestM) - 1]} {latestY} prices)</span>
           })()}
         </label>
       </div>

@@ -1,48 +1,36 @@
 // netlify/functions/ingest-csv.js
 import Papa from 'papaparse'
 import { createClient } from '@supabase/supabase-js'
-import { TRANSIENT_CATEGORIES } from '../../src/lib/categories.js'
 
 const PLATINUM_MC_RE = /PLATINUM\s+M\/C/i
 
 // --- Pure helpers (exported for testing) ---
 
 export function parseRow(row) {
-  const DATE_COL = 'DATE'
-  const DESC_COL = 'DESCRIPTION'
+  const DATE_COL   = 'DATE'
+  const DESC_COL   = 'DESCRIPTION'
   const AMOUNT_COL = 'AMOUNT'
-  const CAT_COL = 'CATEGORY'
+  const CAT_COL    = 'CATEGORY'
 
   if (!row[DATE_COL] || !row[DESC_COL] || row[AMOUNT_COL] === undefined || !row[CAT_COL]) {
     throw new Error(`Missing required column in row: ${JSON.stringify(row)}`)
   }
 
-  const amount = parseFloat(String(row[AMOUNT_COL]).replace(/[^0-9.-]/g, ''))
-  if (isNaN(amount)) throw new Error(`Invalid amount in row: ${JSON.stringify(row)}`)
-  if (amount === 0) throw new Error(`Skipping zero-amount row: ${JSON.stringify(row)}`)
+  const rawAmount = parseFloat(String(row[AMOUNT_COL]).replace(/[^0-9.-]/g, ''))
+  if (isNaN(rawAmount)) throw new Error(`Invalid amount in row: ${JSON.stringify(row)}`)
+  if (rawAmount === 0)  throw new Error(`Skipping zero-amount row: ${JSON.stringify(row)}`)
 
   const description = row[DESC_COL].trim()
-  let category = row[CAT_COL].trim()
+  let   category    = row[CAT_COL].trim()
 
-  if (amount > 0) {
-    if (TRANSIENT_CATEGORIES.has(category)) {
-      throw new Error(`Skipping transient positive row: ${JSON.stringify(row)}`)
-    }
-    return { type: 'income', date: row[DATE_COL].trim(), description, amount, category }
+  if (rawAmount < 0) {
+    // Expense — store as positive
+    if (PLATINUM_MC_RE.test(description)) category = '0% Credit Card Repayment'
+    return { date: row[DATE_COL].trim(), description, amount: Math.abs(rawAmount), category }
   }
 
-  // amount < 0 — expense
-  if (PLATINUM_MC_RE.test(description)) {
-    category = '0% Credit Card Repayment'
-  }
-
-  return {
-    type: 'expense',
-    date: row[DATE_COL].trim(),
-    description,
-    amount: Math.abs(amount),
-    category,
-  }
+  // Credit — store as negative
+  return { date: row[DATE_COL].trim(), description, amount: -rawAmount, category }
 }
 
 export function detectPeriod(rows) {
@@ -86,22 +74,19 @@ export const handler = async (event) => {
     return { statusCode: 400, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'CSV parse error', details: errors }) }
   }
 
-  const parsed = []
+  const parsed   = []
   const warnings = []
   for (const row of rawRows) {
     try { parsed.push(parseRow(row)) }
     catch (e) { warnings.push(e.message) }
   }
 
-  const expenseRows = parsed.filter(r => r.type === 'expense')
-  const incomeRows = parsed.filter(r => r.type === 'income')
-
-  if (expenseRows.length === 0) {
-    return { statusCode: 400, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'No valid expense rows found', warnings }) }
+  if (parsed.length === 0) {
+    return { statusCode: 400, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'No valid rows found', warnings }) }
   }
 
   let period
-  try { period = detectPeriod(expenseRows) }
+  try { period = detectPeriod(parsed) }
   catch (e) { return { statusCode: 400, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: e.message }) } }
 
   const { data: existing } = await supabase.from('uploads').select('id').eq('period', period).single()
@@ -117,31 +102,21 @@ export const handler = async (event) => {
   }
 
   const { data: upload, error: uploadErr } = await supabase.from('uploads').insert({
-    filename, period, uploaded_by: uploadedBy, row_count: expenseRows.length,
+    filename, period, uploaded_by: uploadedBy, row_count: parsed.length,
   }).select().single()
   if (uploadErr) {
     return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: uploadErr.message }) }
   }
 
-  const txRows = expenseRows.map(({ type, ...t }) => ({ ...t, upload_id: upload.id }))
+  const txRows = parsed.map(t => ({ ...t, upload_id: upload.id }))
   const { error: txErr } = await supabase.from('transactions').insert(txRows)
   if (txErr) {
     return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: txErr.message }) }
   }
 
-  if (incomeRows.length > 0) {
-    const incomeDbRows = incomeRows.map(({ type, ...r }) => r)
-    const { error: incomeErr } = await supabase
-      .from('income')
-      .upsert(incomeDbRows, { onConflict: 'date,description,amount', ignoreDuplicates: true })
-    if (incomeErr) {
-      return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: incomeErr.message }) }
-    }
-  }
-
   return {
     statusCode: 200,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ period, rowCount: expenseRows.length, incomeCount: incomeRows.length, warnings }),
+    body: JSON.stringify({ period, rowCount: parsed.length, warnings }),
   }
 }

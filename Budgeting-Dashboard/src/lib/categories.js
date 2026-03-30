@@ -1,5 +1,7 @@
 // src/lib/categories.js
 
+export const INCOME_CATEGORIES = new Set(['Income', 'Interest Earnings'])
+
 export const BILLS_CATEGORIES = new Set([
   'Car Repayments',
   'Child & dependent expenses',

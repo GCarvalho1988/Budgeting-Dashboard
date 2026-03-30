@@ -8,8 +8,7 @@ const MONTH_ABBR = {
 
 /**
  * Fetches CPIH monthly 12-month rates from ONS API.
- * Returns { "2026-01": 3.7, "2025-12": 3.5, ... }
- * The 12-month rate for a given period is the year-on-year inflation for that calendar month.
+ * Returns { "2026-02": 3.5, "2025-12": 3.2, ... }
  */
 export async function fetchCpiRates() {
   const res = await fetch(ONS_URL)
@@ -26,11 +25,25 @@ export async function fetchCpiRates() {
 }
 
 /**
- * Adjusts `amount` from py-month prices to cy-month prices using the monthly 12-month CPIH rate.
- * cyPeriod: "YYYY-MM" string for the corresponding month in the current year (e.g. "2026-01").
- * The 12-month rate is already the year-on-year ratio — apply it directly.
- * Returns amount unchanged if the rate is unavailable (factor = 1).
+ * Adjusts `amount` from `pyYear` prices to the latest available CPI reference month.
+ * Uses the same calendar month's rate for each intervening year (e.g. if latest is
+ * "2026-02", applies the Feb rate for 2025 and Feb for 2026, compounded).
+ * Every historical amount ends up expressed in the same reference month's purchasing power.
  */
-export function cpiAdjustMonth(amount, cyPeriod, rates) {
-  return amount * (1 + (rates[cyPeriod] ?? 0) / 100)
+export function cpiAdjustToLatest(amount, pyYear, rates) {
+  const sortedKeys = Object.keys(rates).sort()
+  if (sortedKeys.length === 0) return amount
+
+  const latestKey = sortedKeys[sortedKeys.length - 1] // e.g. "2026-02"
+  const [latestYearStr, latestMonth] = latestKey.split('-')
+  const latestYear = Number(latestYearStr)
+
+  if (pyYear >= latestYear) return amount
+
+  let factor = 1
+  for (let y = pyYear + 1; y <= latestYear; y++) {
+    const key = `${y}-${latestMonth}`
+    factor *= 1 + (rates[key] ?? 0) / 100
+  }
+  return amount * factor
 }
