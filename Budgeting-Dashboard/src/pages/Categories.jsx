@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { INCOME_CATEGORIES, BILLS_CATEGORIES, TRANSIENT_CATEGORIES, bucketCategory } from '../lib/categories'
+
+// Income is stored negative in DB — flip sign for display
+function displayAmount(amount, category) {
+  return INCOME_CATEGORIES.has(category) ? -Number(amount) : Number(amount)
+}
 import MonthlyTrendChart from '../components/MonthlyTrendChart'
 
 function formatGBP(n) {
@@ -54,7 +59,7 @@ export default function Categories() {
       const monthMap = {}
       combined.forEach(t => {
         const mo = t.date.slice(0, 7)
-        monthMap[mo] = (monthMap[mo] || 0) + Number(t.amount)
+        monthMap[mo] = (monthMap[mo] || 0) + displayAmount(t.amount, selected)
       })
       const trend = Object.entries(monthMap)
         .sort(([a], [b]) => a.localeCompare(b))
@@ -68,7 +73,7 @@ export default function Categories() {
       const byYear = {}
       combined.forEach(t => {
         const yr = t.date.slice(0, 4)
-        byYear[yr] = (byYear[yr] || 0) + Number(t.amount)
+        byYear[yr] = (byYear[yr] || 0) + displayAmount(t.amount, selected)
       })
       const years = Object.keys(byYear).sort()
       const cy = years[years.length - 1]
@@ -164,8 +169,8 @@ export default function Categories() {
                     <p className="text-[#EBDCC4]">{tx.description}</p>
                     <p className="text-[#B6A596] text-xs mt-0.5">{tx.date}</p>
                   </div>
-                  <p className={`font-medium ${Number(tx.amount) < 0 ? 'text-[#DC9F85]' : 'text-[#EBDCC4]'}`}>
-                    {formatGBP(tx.amount)}
+                  <p className={`font-medium tabular-nums ${Number(tx.amount) < 0 && !INCOME_CATEGORIES.has(selected) ? 'text-[#B6A596]' : 'text-[#EBDCC4]'}`}>
+                    {Number(tx.amount) < 0 && !INCOME_CATEGORIES.has(selected) ? '+' : ''}{formatGBP(Math.abs(Number(tx.amount)))}
                   </p>
                 </div>
               ))}

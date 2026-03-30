@@ -46,7 +46,10 @@ export default function YearVsYear() {
         setLoading(false)
         return
       }
-      const filtered = (data ?? []).filter(r => bucketCategory(r.category) !== 'transient')
+      const filtered = (data ?? []).filter(r => {
+        const b = bucketCategory(r.category)
+        return b === 'bills' || b === 'discretionary'
+      })
       setAllData(filtered)
       setCpiRates(rates)
       const ys = [...new Set(filtered.map(r => r.period.slice(0, 4)))].sort()

@@ -108,8 +108,8 @@ export default function Transactions() {
   const filtered = transactions.filter(tx => {
     if (filters.month && !tx.date.startsWith(filters.month)) return false
     if (filters.category && tx.category !== filters.category) return false
-    if (filters.minAmount !== '' && Number(tx.amount) < filters.minAmount) return false
-    if (filters.maxAmount !== '' && Number(tx.amount) > filters.maxAmount) return false
+    if (filters.minAmount !== '' && Math.abs(Number(tx.amount)) < filters.minAmount) return false
+    if (filters.maxAmount !== '' && Math.abs(Number(tx.amount)) > filters.maxAmount) return false
     return true
   })
 
@@ -200,7 +200,9 @@ export default function Transactions() {
                       </button>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-right text-[#EBDCC4] font-medium">{formatGBP(tx.amount)}</td>
+                  <td className={`px-5 py-3 text-right font-medium tabular-nums ${Number(tx.amount) < 0 ? 'text-[#B6A596]' : 'text-[#EBDCC4]'}`}>
+                    {Number(tx.amount) < 0 ? '+' : ''}{formatGBP(Math.abs(Number(tx.amount)))}
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <CommentButton transactionId={tx.id} existingFlags={flags[tx.id] || []} />
                   </td>

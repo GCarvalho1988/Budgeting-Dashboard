@@ -32,43 +32,31 @@ const BUCKET_LABELS = {
 }
 const BUCKET_KEYS = ['bills', 'discretionary', 'transient', 'income']
 
+// Income amounts are stored as negative in DB — negate to get a positive display value
+function sumBucket(rows, bucket) {
+  const raw = rows.filter(r => bucketCategory(r.category) === bucket).reduce((s, r) => s + Number(r.total), 0)
+  return bucket === 'income' ? -raw : raw
+}
+
 export default function Overview() {
   const [allCatData, setAllCatData]           = useState(null)
-  const [salaryByPeriod, setSalaryByPeriod]   = useState(null)
   const [periods, setPeriods]                 = useState([])
   const [periodIndex, setPeriodIndex]         = useState(null)
   const [breakdownBucket, setBreakdownBucket] = useState('discretionary')
 
   useEffect(() => {
     async function load() {
-      const [{ data: catData, error: catErr }, salaryResult] = await Promise.all([
-        supabase.rpc('get_monthly_category_totals'),
-        supabase
-          .from('income')
-          .select('date, amount')
-          .eq('category', 'Salary')
-          .then(({ data, error }) => ({ data, error })),
-      ])
+      const { data: catData, error: catErr } = await supabase.rpc('get_monthly_category_totals')
       if (catErr) console.error('get_monthly_category_totals failed:', catErr.message)
-      if (salaryResult.error) console.error('salary query failed:', salaryResult.error.message)
-
-      const salaryMap = {}
-      salaryResult.data?.forEach(r => {
-        const p = r.date.slice(0, 7)
-        salaryMap[p] = (salaryMap[p] || 0) + Number(r.amount)
-      })
-
       const ps = [...new Set((catData ?? []).map(r => r.period))].sort()
       setAllCatData(catData ?? [])
-      setSalaryByPeriod(salaryMap)
       setPeriods(ps)
       setPeriodIndex(ps.length > 0 ? ps.length - 1 : null)
     }
     load()
   }, [])
 
-  const loading = allCatData === null || salaryByPeriod === null
-  if (loading) return <div className="text-[#B6A596] py-8">Loading…</div>
+  if (allCatData === null) return <div className="text-[#B6A596] py-8">Loading…</div>
   if (periods.length === 0) return <div className="text-[#B6A596] py-8">No data yet. Upload a CSV to get started.</div>
 
   const period     = periodIndex !== null ? periods[periodIndex] : null
@@ -77,18 +65,14 @@ export default function Overview() {
   const periodRows = allCatData.filter(r => r.period === period)
   const prevRows   = prevPeriod ? allCatData.filter(r => r.period === prevPeriod) : []
 
-  function sumBucket(rows, bucket) {
-    return rows.filter(r => bucketCategory(r.category) === bucket).reduce((s, r) => s + Number(r.total), 0)
-  }
-
   const bills         = sumBucket(periodRows, 'bills')
   const discretionary = sumBucket(periodRows, 'discretionary')
-  const income        = Number(salaryByPeriod[period] ?? 0)
+  const income        = sumBucket(periodRows, 'income')
   const cashflow      = income - bills - discretionary
 
   const prevBills         = sumBucket(prevRows, 'bills')
   const prevDiscretionary = sumBucket(prevRows, 'discretionary')
-  const prevIncome        = Number(salaryByPeriod[prevPeriod] ?? 0)
+  const prevIncome        = sumBucket(prevRows, 'income')
 
   function pctDelta(cur, prev) {
     if (!prev) return undefined
@@ -97,13 +81,22 @@ export default function Overview() {
 
   function getBreakdownItems(bucket) {
     if (bucket === 'income') {
-      const thisMo  = Math.round(salaryByPeriod[period] ?? 0)
-      const lastMo  = prevPeriod ? Math.round(salaryByPeriod[prevPeriod] ?? 0) : null
-      const delta   = lastMo ? Math.round(((thisMo - lastMo) / lastMo) * 100) : null
-      const last6   = periods
-        .slice(Math.max(0, periodIndex - 5), periodIndex + 1)
-        .map(p => Math.round(salaryByPeriod[p] ?? 0))
-      return [{ name: 'Salary', thisMo, lastMo, delta, last6 }]
+      return periodRows
+        .filter(r => bucketCategory(r.category) === 'income')
+        .map(r => {
+          const thisMo    = Math.round(-Number(r.total))
+          const lastMoRow = prevRows.find(p => p.category === r.category)
+          const lastMo    = lastMoRow ? Math.round(-Number(lastMoRow.total)) : null
+          const delta     = lastMo ? Math.round(((thisMo - lastMo) / lastMo) * 100) : null
+          const last6     = periods
+            .slice(Math.max(0, periodIndex - 5), periodIndex + 1)
+            .map(p => {
+              const row = allCatData.find(d => d.period === p && d.category === r.category)
+              return row ? Math.round(-Number(row.total)) : 0
+            })
+          return { name: r.category, thisMo, lastMo, delta, last6 }
+        })
+        .sort((a, b) => b.thisMo - a.thisMo)
     }
     return periodRows
       .filter(r => bucketCategory(r.category) === bucket)
@@ -130,7 +123,7 @@ export default function Overview() {
   const cashflowTrend = periods.map(p => {
     const rows  = allCatData.filter(r => r.period === p)
     const spend = sumBucket(rows, 'bills') + sumBucket(rows, 'discretionary')
-    const inc   = Number(salaryByPeriod[p] ?? 0)
+    const inc   = sumBucket(rows, 'income')
     cumulative += inc - spend
     const [y, m] = p.split('-')
     const label  = new Date(Number(y), Number(m) - 1).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
@@ -184,15 +177,15 @@ export default function Overview() {
           <p className="text-xs text-[#B6A596] uppercase tracking-widest mb-3">Cashflow</p>
           <div className="space-y-1 text-xs">
             <div className="flex justify-between">
-              <span className="text-[#B6A596]"><span>Salary</span></span>
+              <span className="text-[#B6A596]">Income</span>
               <span className="text-[#EBDCC4] tabular-nums">{income > 0 ? formatGBP(income) : '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#B6A596]"><span>Bills</span><span> & Fixed</span></span>
+              <span className="text-[#B6A596]">Bills & Fixed</span>
               <span className="text-[#EBDCC4] tabular-nums">−{formatGBP(bills)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#B6A596]"><span>Discret</span><span>ionary</span></span>
+              <span className="text-[#B6A596]">Discretionary</span>
               <span className="text-[#EBDCC4] tabular-nums">−{formatGBP(discretionary)}</span>
             </div>
           </div>
@@ -225,7 +218,7 @@ export default function Overview() {
                 }`}
                 style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
               >
-                {(() => { const lbl = BUCKET_LABELS[b]; const m = Math.ceil(lbl.length / 2); return <><span>{lbl.slice(0, m)}</span><span>{lbl.slice(m)}</span></> })()}
+                {BUCKET_LABELS[b]}
               </button>
             ))}
           </div>
@@ -237,7 +230,7 @@ export default function Overview() {
         </div>
 
         {breakdownItems.length === 0 ? (
-          <p className="text-xs text-[#66473B]">No {BUCKET_LABELS[breakdownBucket].toLowerCase()} spend this period.</p>
+          <p className="text-xs text-[#66473B]">No {BUCKET_LABELS[breakdownBucket].toLowerCase()} this period.</p>
         ) : (
           <table className="w-full">
             <thead>

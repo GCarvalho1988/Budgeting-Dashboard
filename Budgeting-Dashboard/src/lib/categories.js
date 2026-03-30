@@ -30,6 +30,7 @@ export const TRANSIENT_CATEGORIES = new Set([
  * @returns {'bills' | 'discretionary' | 'transient'}
  */
 export function bucketCategory(category) {
+  if (INCOME_CATEGORIES.has(category)) return 'income'
   if (TRANSIENT_CATEGORIES.has(category)) return 'transient'
   if (BILLS_CATEGORIES.has(category)) return 'bills'
   return 'discretionary'
