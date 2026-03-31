@@ -11,7 +11,7 @@ title: "Here's what I'm asking"
 
 Four weeks in. Time to actually ask.
 
-Manchester to London, 200 miles, 28 June, for Ambitious about Autism. I'm at [X] raised. Which is fine. Perfectly fine.
+Manchester to London, 220 miles, 28 June, for Ambitious about Autism. I'm at [X] raised. Which is fine. Perfectly fine.
 
 If you can spare a tenner — or even just share this — it genuinely moves the needle.
 

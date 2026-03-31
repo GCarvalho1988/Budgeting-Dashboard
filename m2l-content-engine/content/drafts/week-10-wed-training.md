@@ -13,7 +13,7 @@ Four weeks out.
 
 [UPDATE: honest state of play — how is the training going? What's been hardest to fit in? Work, travel, family — what's been competing for the same hours? And what does the next four weeks realistically look like alongside everything else?]
 
-200 miles on 28 June. Still happening.
+220 miles on 28 June. Still happening.
 
 Link in the comments — £1,000 for Ambitious about Autism.
 

@@ -9,7 +9,7 @@ suggested_time: "08:30"
 title: "Week 3"
 ---
 
-Week 3. Here's what fitting 200-mile training around a normal life actually looks like.
+Week 3. Here's what fitting 220-mile training around a normal life actually looks like.
 
 [UPDATE: be specific — what did you actually do this week? Early morning ride before work? Missed a session because of something at home? A weekend ride that ate into family time? The specific, honest detail is the whole post.]
 
