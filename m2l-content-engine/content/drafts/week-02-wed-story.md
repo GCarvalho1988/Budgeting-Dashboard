@@ -9,23 +9,17 @@ suggested_time: "08:30"
 title: "You don't need a personal story"
 ---
 
-There's a version of charity fundraising that goes: "This cause is close to my heart because..."
+Honest question I had to answer for myself: do you need a personal connection to a cause to fundraise for it?
 
-I can't say that about autism. Nobody in my family is autistic. I didn't grow up around it.
+Autism hasn't touched my family. But Ambitious about Autism supports young autistic people into education and employment — in a country where 78% of autistic adults are unemployed or underemployed. Not because of ability. Because of how systems are built.
 
-So I spent some time looking at what Ambitious about Autism actually does. They support young autistic people through education and into employment — not awareness campaigns, actual practical programmes. They train the professionals working with autistic people so those professionals understand what they're dealing with.
+You don't need a personal story to think that's worth fixing. I don't have one. Still doing it.
 
-The number that stayed with me: 78% of autistic adults in the UK are unemployed or underemployed. Not because of ability. Because of how systems are designed — and who's running them.
-
-You don't need a personal story to think that's worth fixing. I don't have one. I'm doing this anyway.
-
-That's my why. Not dramatic. But it's honest.
-
-Fundraising link in the first comment.
+Link in the comments.
 
 ---
 
 ## Posting Notes
 - Timing: Wednesday 8 April, 08:30
-- The 78% stat is the anchor — let it land, don't bury it
+- The 78% stat is the anchor — let it land
 - Remember: fundraising link goes as first comment, not in the post body

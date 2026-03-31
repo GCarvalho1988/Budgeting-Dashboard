@@ -11,17 +11,15 @@ title: "Back on the bike"
 
 Back on the bike after Fred Whitton. Legs mostly operational.
 
-Six weeks to Manchester to London. The training now is about consistency — keep the volume up, keep the cadence, don't break anything before the start line.
+Six weeks to Manchester to London. Training now is just consistency — keep the miles up, don't break anything. The route is flatter than Fred Whitton, for whatever that's worth at mile 160.
 
-The route is flatter than Fred Whitton. Whether that actually matters at mile 160 is something nobody knows until they're in it.
+Nobody really knows until they're in it. Still going.
 
-That's the honest position. Still going.
-
-Fundraising link in the first comment — £1,000 target, Ambitious about Autism.
+Link in the comments — £1,000 for Ambitious about Autism.
 
 ---
 
 ## Posting Notes
 - Timing: Wednesday 20 May, 08:30
-- Short post is fine here — it's a recovery week, keep the energy low-key
+- Short post is fine — recovery week energy
 - Remember: fundraising link goes as first comment, not in the post body

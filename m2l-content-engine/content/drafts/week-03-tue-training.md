@@ -9,21 +9,17 @@ suggested_time: "08:30"
 title: "200 miles starts with 40"
 ---
 
-The plan says 200 miles on 28 June. My legs currently have strong opinions about 40.
+Three weeks in and my legs are already lodging complaints.
 
-Three weeks into training. Saturday was 55km through the Wharfe Valley — beautiful, relentless, and ended with me eating a Cornish pasty in a car park in Otley with the expression of a man quietly reassessing his choices.
+55km through the Wharfe Valley on Saturday — beautiful route, ended with me eating a Cornish pasty in a car park in Otley with the expression of a man questioning his decisions.
 
-Progress is being made. Slowly.
+200 miles is a long way off. 10 weeks to go. Progress being made. Slowly 😬
 
-I'm not a natural endurance cyclist. I'm someone who cycles because he lives in Yorkshire and it would be embarrassing not to. The gap between where I am and where I need to be is both motivating and slightly terrifying. Ten weeks to go.
-
-The legs will follow. Probably.
-
-Fundraising link in the first comment — £1,000 target for Ambitious about Autism. Every bit helps.
+Link in the comments — £1,000 for Ambitious about Autism.
 
 ---
 
 ## Posting Notes
 - Timing: Tuesday 14 April, 08:30
-- Keep this light — it's early, don't be too heavy on the charity push yet
+- Keep it light — it's early days
 - Remember: fundraising link goes as first comment, not in the post body

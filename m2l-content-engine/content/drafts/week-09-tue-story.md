@@ -9,24 +9,19 @@ suggested_time: "08:30"
 title: "What Ambitious about Autism actually does"
 ---
 
-Ambitious about Autism. What do they actually do?
+Nine weeks cycling in the name of Ambitious about Autism and I've never properly explained what they do. Should fix that.
 
-Nine weeks cycling in their name and I've never properly explained them. Should fix that.
+They support young autistic people through education and into employment. They train professionals working with autistic people. They try to get systems to actually work.
 
-They work with young autistic people — specifically on education, employment, and getting the systems around them to actually function. Their programmes help people navigate schools, colleges, workplaces. They train the professionals working with autistic people so those professionals understand what they're actually looking at.
+78% of autistic adults in the UK are unemployed or underemployed — not because of ability, but because of how things are built and who's running them.
 
-The number that stayed with me: 78% of autistic adults in the UK are unemployed or underemployed. Not because of ability. Because of how systems are designed — and who's running them.
+That's the gap. That's what they're working on.
 
-Ambitious about Autism is working on that gap. Practically. Consistently. Without a lot of noise.
-
-That's the cause. That's worth £1,000.
-
-Fundraising link in the first comment.
+Link in the comments.
 
 ---
 
 ## Posting Notes
 - Timing: Tuesday 26 May, 08:30
-- This post tends to travel well — consider boosting it or sharing more widely
-- The 78% stat is the anchor. Let it land before you move on.
+- This post travels well — worth boosting or sharing more widely
 - Remember: fundraising link goes as first comment, not in the post body

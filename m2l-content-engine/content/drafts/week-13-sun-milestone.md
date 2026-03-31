@@ -11,22 +11,17 @@ title: "Manchester to London. Done."
 
 Manchester to London. Done.
 
-200 miles. Started at 6am in Manchester. Finished — later than planned, legs disagreeing from about mile 160 — somewhere outside London with the light still in the sky.
+200 miles. Started 6am in Manchester, finished — later than planned, legs had opinions from about mile 160 — somewhere outside London with the light still up.
 
-Not going to dress it up. It was very long. The last 40 miles were a negotiation between my brain and my legs that I won't repeat in public.
+Was very long. The last 40 miles were not fun. That's all I'll say.
 
-But it's done.
+But it's done. Thank you to everyone who donated and followed along — it genuinely made a difference.
 
-The money raised goes to Ambitious about Autism. If you haven't donated, the link is still open — it will be for a while. Every contribution after the fact counts just as much.
-
-Thank you for following this. It made a difference.
-
-Fundraising link in the first comment.
+Link to donate still in the comments if you want to. Every bit counts.
 
 ---
 
 ## Posting Notes
 - Timing: Sunday 28 June — post when you're done, evening is fine
-- UPDATE with actual finish time and any real moments from the day
-- This is the post to be personal — what actually happened matters more than what you planned to say
+- UPDATE with actual finish time and real moments from the day — what actually happened beats what you planned to say
 - Remember: fundraising link goes as first comment, not in the post body

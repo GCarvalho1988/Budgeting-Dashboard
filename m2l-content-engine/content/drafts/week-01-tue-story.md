@@ -9,21 +9,16 @@ suggested_time: "08:30"
 title: "Why I'm doing this"
 ---
 
-I've signed up to cycle Manchester to London. 200 miles. 28 June.
+Right, I've gone and signed myself up for something. Manchester to London — 200 miles, 28 June — for Ambitious about Autism.
 
-I should say upfront: I didn't come to this because autism touched my family. I came to it because of Simon Mottram.
+Why this cause? Simon Mottram, Rapha's founder, has backed this ride quietly for years. No fanfare, just consistent support for something he believes in. That kind of thing gets you.
 
-Mottram founded Rapha. He's been backing this ride personally, year after year, without fanfare. No big announcement, no campaign. Just showing up, consistently, for a cause he believes in. That kind of quiet persistence from someone you respect — it tells you more than any marketing ever could.
+Target is £1,000. I'll be documenting the suffering over the next 13 weeks 🚴
 
-So I signed up. The cause is Ambitious about Autism. The distance is, frankly, alarming. The target is £1,000.
-
-I'll be posting over the next 13 weeks — training updates, Fred Whitton, the honest moments of doubt. Follow along if you like.
-
-Fundraising link in the first comment.
+Link in the comments if you want to back it from day one.
 
 ---
 
 ## Posting Notes
 - Timing: Tuesday 31 March, 08:30
-- This is the launch post — don't overthink it, just get it out
 - Remember: fundraising link goes as first comment, not in the post body

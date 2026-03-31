@@ -11,21 +11,17 @@ title: "Two weeks out"
 
 Two weeks.
 
-Route is planned. Bike is serviced. Bag is half-packed. The legs feel restless, which I'm told means they're ready.
+Bike serviced. Route planned. Bag half packed. Legs feeling restless, which I'm told is a good sign.
 
-12 weeks of restructuring weekends, eating, and sleep around a single Sunday in June. Strange thing to do when you write it down. It'll be over in about 13 hours. Then it's just something that happened.
+12 weeks of training for a single Sunday in June. Strange thing to do when you write it down. It'll be over in about 13 hours. Then it's just something that happened.
 
-But it does something to your focus. You know exactly what you're doing, and you know exactly why you're doing it.
+Worth it though. If you haven't donated yet — the two-week window is the moment.
 
-The why is Ambitious about Autism. The what is 200 miles. The when is 28 June.
-
-If there's someone in your network who might donate or share — the two-week window is the moment to put it in front of them.
-
-Fundraising link in the first comment.
+Link in the comments 🙏
 
 ---
 
 ## Posting Notes
 - Timing: Tuesday 16 June, 08:30
-- Consider tagging people directly who said they'd donate
+- Consider tagging people who said they'd donate
 - Remember: fundraising link goes as first comment, not in the post body

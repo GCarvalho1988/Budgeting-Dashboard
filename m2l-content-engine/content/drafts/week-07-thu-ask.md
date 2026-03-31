@@ -9,20 +9,15 @@ suggested_time: "12:30"
 title: "Fred Whitton done. Now the real ask."
 ---
 
-Fred Whitton done.
+Right, Fred Whitton done. Now the actual point of all this.
 
-I've just proved to myself I can cover this kind of distance. Feels like the right moment to ask you to back it.
+£1,000 for Ambitious about Autism. I've just proved I can cover the distance — feels like a good moment to ask you to back it.
 
-The target is £1,000 for Ambitious about Autism — practical support for autistic young people into education and employment. The fundraising is the point. The cycling is just the method.
-
-If you've been thinking about donating, now is a good time. Even £5 moves the number.
-
-Fundraising link in the first comment.
+Even £5 helps. Link in the comments 👇
 
 ---
 
 ## Posting Notes
 - Timing: Thursday 14 May, 12:30
-- Short is right here — you already said everything Tuesday
-- Don't repeat the Fred Whitton story, just use the momentum
+- Short is right — you said everything on Tuesday
 - Remember: fundraising link goes as first comment, not in the post body
