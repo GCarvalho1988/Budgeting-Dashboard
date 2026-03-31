@@ -11,11 +11,11 @@ title: "Two weeks out"
 
 Two weeks.
 
-Bike serviced. Route planned. Bag half packed. Legs feeling restless, which I'm told is a good sign.
+[UPDATE: honest state of play — legs, fitness, how you're feeling about the distance. Are you confident? Nervous? Both?]
 
-12 weeks of training for a single Sunday in June. Strange thing to do when you write it down. It'll be over in about 13 hours. Then it's just something that happened.
+13 weeks of fitting training around everything else — early mornings, weekends, [UPDATE: one specific thing that was hard to juggle — a work trip, a family commitment, a week where it nearly didn't happen]. It's done now. What's left is just the ride.
 
-Worth it though. If you haven't donated yet — the two-week window is the moment.
+If you haven't donated yet — the two-week window is when most people do.
 
 Link in the comments 🙏
 
@@ -23,5 +23,6 @@ Link in the comments 🙏
 
 ## Posting Notes
 - Timing: Tuesday 16 June, 08:30
+- The real feelings at this point will be better than any draft — update both placeholders honestly
 - Consider tagging people who said they'd donate
 - Remember: fundraising link goes as first comment, not in the post body

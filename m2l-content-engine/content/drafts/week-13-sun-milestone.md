@@ -11,17 +11,20 @@ title: "Manchester to London. Done."
 
 Manchester to London. Done.
 
-200 miles. Started 6am in Manchester, finished — later than planned, legs had opinions from about mile 160 — somewhere outside London with the light still up.
+[UPDATE: actual distance, start time, finish time. What happened. Be specific — one moment from the day that was harder than expected, one that surprised you. How the legs felt at mile 160. What got you to the finish.]
 
-Was very long. The last 40 miles were not fun. That's all I'll say.
+322km. 13 weeks of training around work, travel, early mornings, and whatever life threw in. Worth every bit of it.
 
-But it's done. Thank you to everyone who donated and followed along — it genuinely made a difference.
+The link is still open if you want to donate. Every contribution after the fact counts just as much.
 
-Link to donate still in the comments if you want to. Every bit counts.
+Thank you for following this 🙏
+
+Fundraising link in the first comment.
 
 ---
 
 ## Posting Notes
 - Timing: Sunday 28 June — post when you're done, evening is fine
-- UPDATE with actual finish time and real moments from the day — what actually happened beats what you planned to say
+- This is the one post where the UPDATE is the whole thing — what actually happened on the day is far better than anything drafted in advance
+- Don't overthink it. Write it while it's fresh.
 - Remember: fundraising link goes as first comment, not in the post body

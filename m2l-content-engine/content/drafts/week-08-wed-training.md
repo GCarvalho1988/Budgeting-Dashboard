@@ -9,17 +9,18 @@ suggested_time: "08:30"
 title: "Back on the bike"
 ---
 
-Back on the bike after Fred Whitton. Legs mostly operational.
+Back on the bike after Fred Whitton. Legs mostly cooperating.
 
-Six weeks to Manchester to London. Training now is just consistency — keep the miles up, don't break anything. The route is flatter than Fred Whitton, for whatever that's worth at mile 160.
+Six weeks to Manchester to London. The training now is about the distance — Fred Whitton proved the climbing legs are there, but 322km is a different thing entirely. My longest ride ever is 166km. I need to get closer to 200km before June.
 
-Nobody really knows until they're in it. Still going.
+[UPDATE: what you actually rode this week, whether work/life made it easy or hard to get back on]
 
-Link in the comments — £1,000 for Ambitious about Autism.
+Still going. Link in the comments — £1,000 for Ambitious about Autism.
 
 ---
 
 ## Posting Notes
 - Timing: Wednesday 20 May, 08:30
-- Short post is fine — recovery week energy
+- UPDATE with actual training detail — did you manage to ride? What got in the way?
+- The distance gap (166km vs 322km needed) is the honest tension worth naming here
 - Remember: fundraising link goes as first comment, not in the post body

@@ -22,4 +22,5 @@ Link in the comments 👇
 ## Posting Notes
 - Timing: Thursday 23 April, 08:30
 - UPDATE [X] to reflect actual current total before posting
+- Keep it short — the ask is the whole post
 - Remember: fundraising link goes as first comment, not in the post body

@@ -11,7 +11,7 @@ title: "Fred Whitton done. Now the real ask."
 
 Right, Fred Whitton done. Now the actual point of all this.
 
-£1,000 for Ambitious about Autism. I've just proved I can cover the distance — feels like a good moment to ask you to back it.
+£1,000 for Ambitious about Autism. I've just proved I can handle a hard day on the bike. Feels like a reasonable moment to ask you to back it.
 
 Even £5 helps. Link in the comments 👇
 
@@ -19,5 +19,5 @@ Even £5 helps. Link in the comments 👇
 
 ## Posting Notes
 - Timing: Thursday 14 May, 12:30
-- Short is right — you said everything on Tuesday
+- Short is right — Tuesday did the storytelling, this just converts it
 - Remember: fundraising link goes as first comment, not in the post body

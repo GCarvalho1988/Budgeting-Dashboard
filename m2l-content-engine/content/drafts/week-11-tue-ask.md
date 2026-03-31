@@ -11,9 +11,9 @@ title: "Three weeks left"
 
 Three weeks out.
 
-Real talk: the fundraising is the point here. The cycling is just the bit I have to do to make the ask feel legitimate.
+The cycling is sorted — or as sorted as it's going to be. The fundraising is the part that still needs a push.
 
-If you've been meaning to donate, now's the time — I'd love to hit £1,000 before I'm on the start line rather than after.
+If you've been meaning to donate, now's the time. I'd love to hit £1,000 before the start line rather than after.
 
 Link in the comments. And if donating isn't for you, sharing takes 10 seconds 🙏
 

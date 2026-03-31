@@ -9,11 +9,13 @@ suggested_time: "12:30"
 title: "Final long ride done"
 ---
 
-Final long training ride done. 130km, felt good for 90 of it, acceptable for the rest.
+Final long training ride done.
 
-Taper starts now — shorter rides, keep the legs moving, don't do anything stupid. The hardest part is apparently trusting the process and not convincing yourself you need more miles.
+[UPDATE: actual distance and what it felt like — be specific. How far did you get? Did you hit 200km? How did the legs hold up in the final third?]
 
-Three weeks to the start line. Legs are ready.
+Taper starts now. Shorter rides, keep the legs ticking, don't do anything stupid. Hardest part of tapering is trusting you've done enough.
+
+Three weeks to the start line.
 
 Link in the comments — still pushing for £1,000 for Ambitious about Autism.
 
@@ -21,5 +23,6 @@ Link in the comments — still pushing for £1,000 for Ambitious about Autism.
 
 ## Posting Notes
 - Timing: Thursday 11 June, 12:30
-- Don't post same day as the Tuesday ask post
+- This post lives or dies on the UPDATE — what actually happened on that final long ride is the whole post
+- Don't post same day as the Tuesday ask
 - Remember: fundraising link goes as first comment, not in the post body

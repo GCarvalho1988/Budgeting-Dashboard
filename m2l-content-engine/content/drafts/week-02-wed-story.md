@@ -9,11 +9,13 @@ suggested_time: "08:30"
 title: "You don't need a personal story"
 ---
 
-Honest question I had to answer for myself: do you need a personal connection to a cause to fundraise for it?
+I don't have a personal connection to autism. Nobody in my family is autistic.
 
-Autism hasn't touched my family. But Ambitious about Autism supports young autistic people into education and employment — in a country where 78% of autistic adults are unemployed or underemployed. Not because of ability. Because of how systems are built.
+But Ambitious about Autism supports young autistic people into education and employment — in a country where 78% of autistic adults are unemployed or underemployed. Not because of ability. Because of how systems are designed and who's running them.
 
-You don't need a personal story to think that's worth fixing. I don't have one. Still doing it.
+You don't need a personal story to think that's worth fixing. I don't have one. Still doing this.
+
+That's my why. Not dramatic. Just honest.
 
 Link in the comments.
 

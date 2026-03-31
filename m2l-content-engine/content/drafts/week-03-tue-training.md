@@ -6,14 +6,16 @@ content_type: training
 status: draft
 platform: linkedin
 suggested_time: "08:30"
-title: "200 miles starts with 40"
+title: "The gap"
 ---
 
-Three weeks in and my legs are already lodging complaints.
+Honest position: the fitness isn't the problem. I've been building since last year — regular 100km weekends, a 166km ride in May that nearly finished me. I'm not starting from zero.
 
-55km through the Wharfe Valley on Saturday — beautiful route, ended with me eating a Cornish pasty in a car park in Otley with the expression of a man questioning his decisions.
+The problem is that 200 miles is almost double my longest ever ride. And the training to close that gap has to fit around a full-time job, travel, and the rest of life. Early mornings, weekends, the occasional hotel gym when work takes me somewhere.
 
-200 miles is a long way off. 10 weeks to go. Progress being made. Slowly 😬
+[UPDATE: what you actually did this week and how it felt]
+
+Still pointing in the right direction.
 
 Link in the comments — £1,000 for Ambitious about Autism.
 
@@ -21,5 +23,6 @@ Link in the comments — £1,000 for Ambitious about Autism.
 
 ## Posting Notes
 - Timing: Tuesday 14 April, 08:30
-- Keep it light — it's early days
+- UPDATE the placeholder with what you actually rode this week
+- The juggling angle is the story — be specific about what got in the way or made it hard to get out
 - Remember: fundraising link goes as first comment, not in the post body
