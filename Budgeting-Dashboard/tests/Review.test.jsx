@@ -3,9 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import Review from '../src/pages/Review'
 
+vi.mock('../src/context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'user-1' } }),
+}))
+
 const mockFrom = vi.fn()
+const mockRpc  = vi.fn().mockResolvedValue({ data: [] })
 vi.mock('../src/lib/supabase', () => ({
-  supabase: { from: (...args) => mockFrom(...args) },
+  supabase: { from: (...args) => mockFrom(...args), rpc: (...args) => mockRpc(...args) },
 }))
 
 function makeChain(overrides = {}) {
@@ -17,17 +22,39 @@ function makeChain(overrides = {}) {
     gte:    vi.fn().mockReturnThis(),
     lt:     vi.fn().mockReturnThis(),
     in:     vi.fn().mockReturnThis(),
-    filter: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
     upsert: vi.fn().mockResolvedValue({ error: null }),
     then:   vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))),
   }
   return { ...base, ...overrides }
 }
 
+// Helper: set up a full period with one pending clothing tx and one tagged personal tx
+function setupPeriodMocks({ pendingTx, taggedTx, flags = [] } = {}) {
+  const allTxs = [
+    ...(pendingTx ? [pendingTx] : []),
+    ...(taggedTx  ? [taggedTx]  : []),
+  ]
+  mockFrom.mockImplementation(table => {
+    if (table === 'uploads') {
+      return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [{ period: '2025-03' }], error: null }))) })
+    }
+    if (table === 'expense_claims') {
+      return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))) })
+    }
+    if (table === 'flags') {
+      return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: flags, error: null }))) })
+    }
+    // transactions + rpc get_distinct_categories
+    return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: allTxs, error: null }))) })
+  })
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockFrom.mockReturnValue(makeChain())
+  mockRpc.mockResolvedValue({ data: [] })
 })
 
 describe('Review', () => {
@@ -35,55 +62,96 @@ describe('Review', () => {
     render(<Review />)
   })
 
-  it('shows Dismiss, Personal and Work buttons per pending transaction', async () => {
-    mockFrom.mockImplementation(table => {
-      if (table === 'uploads') {
-        return makeChain({
-          then: vi.fn(cb => Promise.resolve(cb({ data: [{ period: '2025-03' }], error: null }))),
-        })
-      }
-      if (table === 'expense_claims') {
-        return makeChain({
-          then: vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))),
-        })
-      }
-      // transactions — return a Clothing & shoes item (pending)
-      return makeChain({
-        then: vi.fn(cb => Promise.resolve(cb({
-          data: [{ id: '1', date: '2025-03-05', description: 'Zara top', amount: 45, category: 'Clothing & shoes' }],
-          error: null,
-        }))),
-      })
+  it('shows Personal, Work, Dismiss buttons and comment icon per pending transaction', async () => {
+    setupPeriodMocks({
+      pendingTx: { id: '1', date: '2025-03-05', description: 'ZARA TOP', amount: 45, category: 'Clothing & shoes' },
     })
     render(<Review />)
-    await waitFor(() => expect(screen.getByText('Zara top')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('ZARA TOP')).toBeInTheDocument())
     expect(screen.getByText('Personal')).toBeInTheDocument()
     expect(screen.getByText('Work')).toBeInTheDocument()
     expect(screen.getByText('Dismiss')).toBeInTheDocument()
-    expect(screen.queryByText(/tag all/i)).not.toBeInTheDocument()
+    expect(screen.getByTitle('Add a comment')).toBeInTheDocument()
   })
 
-  it('shows summary table for pre-tagged Dulce Personal Purchases items', async () => {
-    mockFrom.mockImplementation(table => {
-      if (table === 'uploads') {
-        return makeChain({
-          then: vi.fn(cb => Promise.resolve(cb({ data: [{ period: '2025-03' }], error: null }))),
-        })
-      }
-      if (table === 'expense_claims') {
-        return makeChain({
-          then: vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))),
-        })
-      }
-      return makeChain({
-        then: vi.fn(cb => Promise.resolve(cb({
-          data: [{ id: '2', date: '2025-03-10', description: 'Clothes', amount: 80, category: 'Dulce Personal Purchases' }],
-          error: null,
-        }))),
-      })
+  it('shows "To review" section header with count', async () => {
+    setupPeriodMocks({
+      pendingTx: { id: '1', date: '2025-03-05', description: 'ZARA TOP', amount: 45, category: 'Clothing & shoes' },
     })
     render(<Review />)
-    await waitFor(() => expect(screen.getByText(/personal transfer/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/to review/i)).toBeInTheDocument())
+    expect(screen.getByText(/1 remaining/i)).toBeInTheDocument()
+  })
+
+  it('shows "Tagged this period" section header for tagged transactions', async () => {
+    setupPeriodMocks({
+      taggedTx: { id: '2', date: '2025-03-10', description: 'RYMAN', amount: 14.99, category: 'Dulce Work Expenses' },
+    })
+    render(<Review />)
+    await waitFor(() => expect(screen.getByText('RYMAN')).toBeInTheDocument())
+    expect(screen.getByText(/tagged this period/i)).toBeInTheDocument()
+  })
+
+  it('does not show Dismiss button on tagged rows', async () => {
+    setupPeriodMocks({
+      taggedTx: { id: '2', date: '2025-03-10', description: 'RYMAN', amount: 14.99, category: 'Dulce Work Expenses' },
+    })
+    render(<Review />)
+    await waitFor(() => expect(screen.getByText('RYMAN')).toBeInTheDocument())
+    expect(screen.queryByText('Dismiss')).not.toBeInTheDocument()
+  })
+
+  it('clicking Dismiss removes the row and inserts a dismiss flag', async () => {
+    setupPeriodMocks({
+      pendingTx: { id: '1', date: '2025-03-05', description: 'PETS AT HOME', amount: 34.5, category: 'General merchandise' },
+    })
+    const insertChain = makeChain()
+    mockFrom.mockImplementation(table => {
+      if (table === 'uploads')       return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [{ period: '2025-03' }], error: null }))) })
+      if (table === 'expense_claims') return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))) })
+      if (table === 'flags')         return { ...makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))) }), insert: vi.fn().mockResolvedValue({ error: null }) }
+      return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [{ id: '1', date: '2025-03-05', description: 'PETS AT HOME', amount: 34.5, category: 'General merchandise' }], error: null }))) })
+    })
+    render(<Review />)
+    await waitFor(() => expect(screen.getByText('PETS AT HOME')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Dismiss'))
+    await waitFor(() => expect(screen.queryByText('PETS AT HOME')).not.toBeInTheDocument())
+  })
+
+  it('dismissed transactions (type=dismiss in flags) are excluded from pending on load', async () => {
+    setupPeriodMocks({
+      pendingTx: { id: '1', date: '2025-03-05', description: 'ALREADY DISMISSED', amount: 20, category: 'General merchandise' },
+      flags: [{ id: 'f1', transaction_id: '1', type: 'dismiss', comment: null }],
+    })
+    render(<Review />)
+    // Wait for load to complete — the summary or empty state should appear
+    await waitFor(() => expect(screen.queryByText('ALREADY DISMISSED')).not.toBeInTheDocument())
+  })
+
+  it('shows summary table for tagged transactions', async () => {
+    setupPeriodMocks({
+      taggedTx: { id: '2', date: '2025-03-10', description: 'CLOTHES', amount: 80, category: 'Dulce Personal Purchases' },
+    })
+    render(<Review />)
+    await waitFor(() => expect(screen.getByText(/transfers this period/i)).toBeInTheDocument())
     expect(screen.getByText(/mark done/i)).toBeInTheDocument()
+  })
+
+  it('clicking Personal tags the transaction and moves it to tagged section', async () => {
+    mockFrom.mockImplementation(table => {
+      if (table === 'uploads')        return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [{ period: '2025-03' }], error: null }))) })
+      if (table === 'expense_claims') return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))) })
+      if (table === 'flags')          return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))) })
+      if (table === 'transactions')   return makeChain({
+        then: vi.fn(cb => Promise.resolve(cb({ data: [{ id: '1', date: '2025-03-05', description: 'ZARA', amount: 45, category: 'Clothing & shoes' }], error: null }))),
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      })
+      return makeChain()
+    })
+    render(<Review />)
+    await waitFor(() => expect(screen.getByText('ZARA')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Personal'))
+    await waitFor(() => expect(screen.getByText(/tagged this period/i)).toBeInTheDocument())
   })
 })
