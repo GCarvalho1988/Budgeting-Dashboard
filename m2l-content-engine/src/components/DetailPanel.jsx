@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { updateDraft } from '../hooks/useApi.js';
+import { updateDraft, uploadImage } from '../hooks/useApi.js';
 
 const TYPE_ICONS = {
   story: '📖', milestone: '🏔️', ask: '🙏', thank: '❤️', training: '🚴',
@@ -18,11 +18,13 @@ export default function DetailPanel({ draft, onClose, onSave }) {
   const [status, setStatus] = useState('draft');
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [image, setImage]   = useState('');
 
   useEffect(() => {
     if (draft) {
       setBody(draft.body ?? '');
       setStatus(draft.status ?? 'draft');
+      setImage(draft.image ?? '');
     }
   }, [draft?.filename]);
 
@@ -37,7 +39,7 @@ export default function DetailPanel({ draft, onClose, onSave }) {
   const charCount = body.length;
 
   const save = async (overrides = {}) => {
-    const updated = { ...draft, body, status, ...overrides };
+    const updated = { ...draft, body, status, image, ...overrides };
     setSaving(true);
     await updateDraft(draft.filename, updated);
     onSave(updated);
@@ -55,6 +57,19 @@ export default function DetailPanel({ draft, onClose, onSave }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleImagePick = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const { path } = await uploadImage(file);
+    setImage(path);
+    await save({ image: path });
+  };
+
+  const handleImageRemove = async () => {
+    setImage('');
+    await save({ image: '' });
+  };
+
   return (
     <aside className="detail-panel">
       <div className="detail-header">
@@ -68,6 +83,31 @@ export default function DetailPanel({ draft, onClose, onSave }) {
           {draft.suggested_time && <span className="meta-chip">{draft.suggested_time}</span>}
           {draft.platform       && <span className="meta-chip">{draft.platform}</span>}
         </div>
+      </div>
+
+      <div className="detail-image">
+        {image ? (
+          <>
+            <img
+              src={`/api/images/${image.replace('images/', '')}`}
+              alt="Post image"
+              className="detail-image-preview"
+            />
+            <button className="btn-secondary image-remove-btn" onClick={handleImageRemove}>
+              Remove image
+            </button>
+          </>
+        ) : (
+          <label className="btn-secondary image-pick-btn">
+            Add image
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleImagePick}
+            />
+          </label>
+        )}
       </div>
 
       <div className="status-toggles">
