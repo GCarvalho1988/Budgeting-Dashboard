@@ -43,6 +43,7 @@ export default function CommentButton({ transactionId, existingFlags = [] }) {
       <button
         onClick={() => setOpen(o => !o)}
         title={hasComments ? `${flags.length} comment(s)` : 'Add a comment'}
+        aria-label={hasComments ? `${flags.length} comment(s)` : 'Add a comment'}
         className={`w-7 h-7 flex items-center justify-center rounded border transition-colors ${
           hasComments
             ? 'border-[#DC9F85] text-[#DC9F85]'
