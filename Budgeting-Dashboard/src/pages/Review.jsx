@@ -1,7 +1,8 @@
 // src/pages/Review.jsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { nextPeriodBoundary, formatPeriodLabel } from '../lib/dateUtils'
+import { BILLS_CATEGORIES, INCOME_CATEGORIES, bucketCategory } from '../lib/categories'
 import CategorySelect from '../components/CategorySelect'
 import CommentButton from '../components/CommentButton'
 import { useAuth } from '../context/AuthContext'
@@ -10,32 +11,28 @@ function formatGBP(n) {
   return `£${Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-const REVIEW_CATEGORIES = [
-  'Clothing & shoes',
-  'General merchandise',
-  'Dulce Personal Purchases',
-  'Dulce Work Expenses',
-]
-
-const ALREADY_TAGGED = ['Dulce Personal Purchases', 'Dulce Work Expenses']
-
-const SORT_ORDER = [
-  'Clothing & shoes',
-  'General merchandise',
-  'Dulce Personal Purchases',
-  'Dulce Work Expenses',
-]
-
-function sortTransactions(txs) {
-  const result = []
-  for (const cat of SORT_ORDER) {
-    result.push(...txs.filter(t => t.category === cat).sort((a, b) => b.date.localeCompare(a.date)))
-  }
-  const rest = txs
-    .filter(t => !SORT_ORDER.includes(t.category))
-    .sort((a, b) => a.category.localeCompare(b.category) || b.date.localeCompare(a.date))
-  return [...result, ...rest]
+// Tagged categories per mode
+const MODE_TAGGED = {
+  gui:   ['Gui Personal Purchases',   'Gui Work Expensss'],
+  dulce: ['Dulce Personal Purchases', 'Dulce Work Expenses'],
 }
+
+// What the Personal/Work buttons write for each mode
+const TAG_CATEGORIES = {
+  gui:   { personal: 'Gui Personal Purchases',   work: 'Gui Work Expensss' },
+  dulce: { personal: 'Dulce Personal Purchases', work: 'Dulce Work Expenses' },
+}
+
+// Categories to exclude from the transactions query (everything except discretionary + person-tagged)
+const EXCLUDED_FROM_REVIEW = [
+  ...Array.from(BILLS_CATEGORIES),
+  ...Array.from(INCOME_CATEGORIES),
+  'Credit card payments',
+  'Savings',
+  'Transfers',
+]
+// PostgREST NOT IN filter string — built once at module level
+const EXCLUDED_PARAM = `(${EXCLUDED_FROM_REVIEW.map(c => `"${c}"`).join(',')})`
 
 const PencilIcon = () => (
   <svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
@@ -43,18 +40,45 @@ const PencilIcon = () => (
   </svg>
 )
 
+function sortPending(txs) {
+  return [...txs].sort((a, b) => a.category.localeCompare(b.category) || b.date.localeCompare(a.date))
+}
+
 export default function Review() {
   const { user } = useAuth()
+  const [mode, setMode]               = useState(() => localStorage.getItem('reviewMode') ?? 'gui')
   const [periods, setPeriods]         = useState([])
   const [periodIndex, setPeriodIndex] = useState(null)
-  const [pending, setPending]         = useState([])
-  const [tagged, setTagged]           = useState([])
+  const [allTxs, setAllTxs]           = useState([])
+  const [dismissedIds, setDismissedIds] = useState(new Set())
   const [flags, setFlags]             = useState({})
   const [claim, setClaim]             = useState(null)
   const [loading, setLoading]         = useState(true)
   const [editingChipId, setEditingChipId] = useState(null)
   const [expandedTagId, setExpandedTagId] = useState(null)
   const [allCategories, setAllCategories] = useState([])
+
+  // Derived: pending = all discretionary txs not yet dismissed
+  const pending = useMemo(() =>
+    sortPending(allTxs.filter(t => bucketCategory(t.category) === 'discretionary' && !dismissedIds.has(t.id))),
+    [allTxs, dismissedIds]
+  )
+
+  // Derived: tagged = current mode's Personal/Work txs, sorted newest first
+  const tagged = useMemo(() =>
+    allTxs
+      .filter(t => MODE_TAGGED[mode].includes(t.category))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map(t => ({ tx: t, tag: t.category === TAG_CATEGORIES[mode].personal ? 'personal' : 'work' })),
+    [allTxs, mode]
+  )
+
+  function switchMode(newMode) {
+    setMode(newMode)
+    localStorage.setItem('reviewMode', newMode)
+    setEditingChipId(null)
+    setExpandedTagId(null)
+  }
 
   useEffect(() => {
     supabase.rpc('get_distinct_categories').then(({ data }) => {
@@ -91,7 +115,7 @@ export default function Review() {
           .select('id, date, description, amount, category')
           .gte('date', `${period}-01`)
           .lt('date', nextPeriodBoundary(period))
-          .in('category', REVIEW_CATEGORIES),
+          .not('category', 'in', EXCLUDED_PARAM),
       ])
 
       if (txError) {
@@ -108,7 +132,7 @@ export default function Review() {
         : { data: [] }
 
       const allFlags = flagData ?? []
-      const dismissedIds = new Set(allFlags.filter(f => f.type === 'dismiss').map(f => f.transaction_id))
+      const dismissed = new Set(allFlags.filter(f => f.type === 'dismiss').map(f => f.transaction_id))
 
       const flagMap = {}
       allFlags.filter(f => f.type === 'comment').forEach(f => {
@@ -116,17 +140,11 @@ export default function Review() {
         flagMap[f.transaction_id].push(f)
       })
 
-      const preTagged = txs
-        .filter(t => ALREADY_TAGGED.includes(t.category))
-        .map(t => ({ tx: t, tag: t.category === 'Dulce Personal Purchases' ? 'personal' : 'work' }))
-
-      const pendingTxs = txs.filter(t => !ALREADY_TAGGED.includes(t.category) && !dismissedIds.has(t.id))
-
       if (!ignore) {
         setClaim(claimData?.[0] ?? null)
         setFlags(flagMap)
-        setPending(sortTransactions(pendingTxs))
-        setTagged(preTagged)
+        setAllTxs(txs)
+        setDismissedIds(dismissed)
         setLoading(false)
       }
     }
@@ -143,67 +161,37 @@ export default function Review() {
       type: 'dismiss',
     })
     if (!error) {
-      setPending(prev => prev.filter(t => t.id !== tx.id))
+      setDismissedIds(prev => new Set([...prev, tx.id]))
     }
   }
 
   async function tagAs(tx, tag) {
-    const newCat = tag === 'personal' ? 'Dulce Personal Purchases' : 'Dulce Work Expenses'
+    const newCat = TAG_CATEGORIES[mode][tag]
     const { error } = await supabase.from('transactions').update({ category: newCat }).eq('id', tx.id)
     if (!error) {
-      setPending(prev => prev.filter(t => t.id !== tx.id))
-      setTagged(prev => [...prev, { tx: { ...tx, category: newCat }, tag }])
+      setAllTxs(prev => prev.map(t => t.id === tx.id ? { ...t, category: newCat } : t))
     }
   }
 
-  // Called when the category chip is saved on a PENDING row
   function handlePendingChipSaved(txId, newCategory) {
     setEditingChipId(null)
-    if (REVIEW_CATEGORIES.includes(newCategory)) {
-      // Update chip in place — stay in pending
-      setPending(prev => sortTransactions(prev.map(t => t.id === txId ? { ...t, category: newCategory } : t)))
-    } else {
-      // Category moved outside review — drop from pending
-      setPending(prev => prev.filter(t => t.id !== txId))
-    }
+    setAllTxs(prev => prev.map(t => t.id === txId ? { ...t, category: newCategory } : t))
   }
 
-  // Called when the category chip is saved on a TAGGED row
   function handleTaggedChipSaved(txId, newCategory) {
     setEditingChipId(null)
-    const newTag = newCategory === 'Dulce Personal Purchases'
-      ? 'personal'
-      : newCategory === 'Dulce Work Expenses'
-        ? 'work'
-        : null
-
-    if (newTag) {
-      // Stay in tagged with updated category/tag
-      setTagged(prev => prev.map(t =>
-        t.tx.id === txId ? { tx: { ...t.tx, category: newCategory }, tag: newTag } : t
-      ))
-    } else if (REVIEW_CATEGORIES.includes(newCategory)) {
-      // Moved to a non-tagged review category — back to pending
-      setTagged(prev => {
-        const item = prev.find(t => t.tx.id === txId)
-        if (item) setPending(p => sortTransactions([...p, { ...item.tx, category: newCategory }]))
-        return prev.filter(t => t.tx.id !== txId)
-      })
-    } else {
-      // Moved outside review entirely — remove from both
-      setTagged(prev => prev.filter(t => t.tx.id !== txId))
-    }
+    setExpandedTagId(null)
+    setAllTxs(prev => prev.map(t => t.id === txId ? { ...t, category: newCategory } : t))
   }
 
   async function retag(tx, newCategory) {
     const { error } = await supabase.from('transactions').update({ category: newCategory }).eq('id', tx.id)
     if (!error) {
       handleTaggedChipSaved(tx.id, newCategory)
-      setExpandedTagId(null)
     }
   }
 
-  // Summary stats
+  // Summary stats (mode-specific via tagged useMemo)
   const personalTxs   = tagged.filter(t => t.tag === 'personal')
   const personalSpend = personalTxs.filter(t => Number(t.tx.amount) > 0).reduce((s, t) => s + Number(t.tx.amount), 0)
   const personalIn    = personalTxs.filter(t => Number(t.tx.amount) < 0).reduce((s, t) => s + Math.abs(Number(t.tx.amount)), 0)
@@ -238,26 +226,50 @@ export default function Review() {
 
   return (
     <div className="space-y-6">
-      {/* Period selector */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => setPeriodIndex(i => Math.max(0, i - 1))}
-          disabled={periodIndex === 0}
-          aria-label="Previous period"
-          className="text-[#DC9F85] disabled:text-[#35211A] text-lg leading-none px-1 transition-colors"
-        >‹</button>
-        <span
-          className="text-[#EBDCC4] text-sm uppercase tracking-widest font-semibold"
-          style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
-        >
-          {formatPeriodLabel(period)}
-        </span>
-        <button
-          onClick={() => setPeriodIndex(i => Math.min(periods.length - 1, i + 1))}
-          disabled={periodIndex === periods.length - 1}
-          aria-label="Next period"
-          className="text-[#DC9F85] disabled:text-[#35211A] text-lg leading-none px-1 transition-colors"
-        >›</button>
+      {/* Header: period nav + mode toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setPeriodIndex(i => Math.max(0, i - 1))}
+            disabled={periodIndex === 0}
+            aria-label="Previous period"
+            className="text-[#DC9F85] disabled:text-[#35211A] text-lg leading-none px-1 transition-colors"
+          >‹</button>
+          <span
+            className="text-[#EBDCC4] text-sm uppercase tracking-widest font-semibold"
+            style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+          >
+            {formatPeriodLabel(period)}
+          </span>
+          <button
+            onClick={() => setPeriodIndex(i => Math.min(periods.length - 1, i + 1))}
+            disabled={periodIndex === periods.length - 1}
+            aria-label="Next period"
+            className="text-[#DC9F85] disabled:text-[#35211A] text-lg leading-none px-1 transition-colors"
+          >›</button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[9px] font-bold tracking-[0.14em] uppercase text-[#66473B]"
+            style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+          >Reviewing as</span>
+          <div className="flex border border-[#35211A] rounded overflow-hidden">
+            {['dulce', 'gui'].map(m => (
+              <button
+                key={m}
+                onClick={() => switchMode(m)}
+                className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.08em] transition-colors ${
+                  mode === m
+                    ? 'bg-[#DC9F85] text-[#181818]'
+                    : 'text-[#66473B] hover:text-[#B6A596]'
+                }`}
+                style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
+              >
+                {m === 'dulce' ? 'Dulce' : 'Gui'}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Transaction list */}
@@ -386,20 +398,20 @@ export default function Review() {
                           <div className="absolute right-0 top-full mt-1 z-10 bg-[#1F1410] border border-[#66473B] rounded shadow-lg flex flex-col min-w-max max-h-64 overflow-y-auto">
                             {tag !== 'personal' && (
                               <button
-                                onClick={() => retag(tx, 'Dulce Personal Purchases')}
+                                onClick={() => retag(tx, TAG_CATEGORIES[mode].personal)}
                                 className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-left bg-[#DC9F85]/10 text-[#DC9F85] hover:bg-[#DC9F85]/20 border-b border-[#35211A]"
                                 style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
                               >Personal</button>
                             )}
                             {tag !== 'work' && (
                               <button
-                                onClick={() => retag(tx, 'Dulce Work Expenses')}
+                                onClick={() => retag(tx, TAG_CATEGORIES[mode].work)}
                                 className="px-4 py-2 text-xs font-semibold uppercase tracking-widest text-left text-[#DC9F85] hover:bg-[#DC9F85]/10 border-b border-[#35211A]"
                                 style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
                               >Work</button>
                             )}
                             {allCategories
-                              .filter(c => c !== 'Dulce Personal Purchases' && c !== 'Dulce Work Expenses' && c !== tx.category)
+                              .filter(c => !MODE_TAGGED[mode].includes(c) && c !== tx.category)
                               .map(cat => (
                                 <button
                                   key={cat}
