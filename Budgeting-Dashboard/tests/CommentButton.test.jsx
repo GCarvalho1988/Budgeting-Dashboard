@@ -26,10 +26,9 @@ beforeEach(() => {
 })
 
 describe('CommentButton', () => {
-  it('renders uncommented by default', () => {
+  it('renders as an icon button with title when no comments', () => {
     render(<CommentButton transactionId="tx-1" />)
-    const btn = screen.getByTitle('Add a comment')
-    expect(btn).toBeInTheDocument()
+    expect(screen.getByTitle('Add a comment')).toBeInTheDocument()
   })
 
   it('shows comment count in title when comments exist', () => {
@@ -43,9 +42,22 @@ describe('CommentButton', () => {
     expect(screen.getByPlaceholderText(/add a comment/i)).toBeInTheDocument()
   })
 
+  it('inserts with type comment when saving', async () => {
+    supabase._chain.single.mockResolvedValue({
+      data: { id: 'f2', comment: 'suspicious', user_id: 'user-1', type: 'comment' },
+    })
+    render(<CommentButton transactionId="tx-1" />)
+    await userEvent.click(screen.getByTitle('Add a comment'))
+    await userEvent.type(screen.getByPlaceholderText(/add a comment/i), 'suspicious')
+    await userEvent.click(screen.getByText('Save'))
+    expect(supabase._chain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'comment', comment: 'suspicious' })
+    )
+  })
+
   it('submits comment and closes panel', async () => {
     supabase._chain.single.mockResolvedValue({
-      data: { id: 'f2', comment: 'suspicious', user_id: 'user-1' },
+      data: { id: 'f2', comment: 'suspicious', user_id: 'user-1', type: 'comment' },
     })
     render(<CommentButton transactionId="tx-1" />)
     await userEvent.click(screen.getByTitle('Add a comment'))

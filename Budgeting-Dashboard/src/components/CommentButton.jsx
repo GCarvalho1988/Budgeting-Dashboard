@@ -1,6 +1,18 @@
+// src/components/CommentButton.jsx
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+
+const CommentIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <path
+      d="M3 4 H23 V18 H13 L9 23 V18 H3 Z"
+      stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinejoin="round"
+    />
+    <line x1="7" y1="9"  x2="19" y2="9"  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <line x1="7" y1="13" x2="14" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+)
 
 export default function CommentButton({ transactionId, existingFlags = [] }) {
   const { user } = useAuth()
@@ -18,8 +30,9 @@ export default function CommentButton({ transactionId, existingFlags = [] }) {
       transaction_id: transactionId,
       user_id: user.id,
       comment: comment.trim(),
+      type: 'comment',
     }).select().single()
-    if (data) setFlags(f => [...f, { ...data, user_id: user.id }])
+    if (data) setFlags(f => [...f, data])
     setComment('')
     setSaving(false)
     setOpen(false)
@@ -30,14 +43,13 @@ export default function CommentButton({ transactionId, existingFlags = [] }) {
       <button
         onClick={() => setOpen(o => !o)}
         title={hasComments ? `${flags.length} comment(s)` : 'Add a comment'}
-        className={`text-xs font-medium uppercase tracking-widest px-2.5 py-1 rounded border transition-colors ${
+        className={`w-7 h-7 flex items-center justify-center rounded border transition-colors ${
           hasComments
             ? 'border-[#DC9F85] text-[#DC9F85]'
-            : 'border-[#66473B] text-[#B6A596] hover:border-[#DC9F85] hover:text-[#DC9F85]'
+            : 'border-[#35211A] text-[#66473B] hover:border-[#DC9F85] hover:text-[#DC9F85]'
         }`}
-        style={{ fontFamily: "'Clash Grotesk', sans-serif" }}
       >
-        {hasComments ? `COMMENT (${flags.length})` : 'COMMENT'}
+        <CommentIcon />
       </button>
 
       {open && (
