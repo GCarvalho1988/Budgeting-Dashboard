@@ -105,7 +105,6 @@ describe('Review', () => {
     setupPeriodMocks({
       pendingTx: { id: '1', date: '2025-03-05', description: 'PETS AT HOME', amount: 34.5, category: 'General merchandise' },
     })
-    const insertChain = makeChain()
     mockFrom.mockImplementation(table => {
       if (table === 'uploads')       return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [{ period: '2025-03' }], error: null }))) })
       if (table === 'expense_claims') return makeChain({ then: vi.fn(cb => Promise.resolve(cb({ data: [], error: null }))) })
@@ -124,8 +123,9 @@ describe('Review', () => {
       flags: [{ id: 'f1', transaction_id: '1', type: 'dismiss', comment: null }],
     })
     render(<Review />)
-    // Wait for load to complete — the summary or empty state should appear
-    await waitFor(() => expect(screen.queryByText('ALREADY DISMISSED')).not.toBeInTheDocument())
+    // Wait for loading to complete — empty state means the transaction was filtered out
+    await waitFor(() => expect(screen.getByText(/nothing to review/i)).toBeInTheDocument())
+    expect(screen.queryByText('ALREADY DISMISSED')).not.toBeInTheDocument()
   })
 
   it('shows summary table for tagged transactions', async () => {

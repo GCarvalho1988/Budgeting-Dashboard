@@ -79,12 +79,13 @@ export default function Review() {
 
   useEffect(() => {
     if (!period) return
+    let ignore = false
     setLoading(true)
     setEditingChipId(null)
     setExpandedTagId(null)
 
     async function load() {
-      const [{ data: claimData }, { data: txData }] = await Promise.all([
+      const [{ data: claimData }, { data: txData, error: txError }] = await Promise.all([
         supabase.from('expense_claims').select('*').eq('period', period),
         supabase.from('transactions')
           .select('id, date, description, amount, category')
@@ -92,6 +93,12 @@ export default function Review() {
           .lt('date', nextPeriodBoundary(period))
           .in('category', REVIEW_CATEGORIES),
       ])
+
+      if (txError) {
+        console.error('transactions query failed:', txError.message)
+        if (!ignore) setLoading(false)
+        return
+      }
 
       const txs = txData ?? []
       const ids = txs.map(t => t.id)
@@ -109,21 +116,23 @@ export default function Review() {
         flagMap[f.transaction_id].push(f)
       })
 
-      setClaim(claimData?.[0] ?? null)
-      setFlags(flagMap)
-
       const preTagged = txs
         .filter(t => ALREADY_TAGGED.includes(t.category))
         .map(t => ({ tx: t, tag: t.category === 'Dulce Personal Purchases' ? 'personal' : 'work' }))
 
       const pendingTxs = txs.filter(t => !ALREADY_TAGGED.includes(t.category) && !dismissedIds.has(t.id))
 
-      setPending(sortTransactions(pendingTxs))
-      setTagged(preTagged)
-      setLoading(false)
+      if (!ignore) {
+        setClaim(claimData?.[0] ?? null)
+        setFlags(flagMap)
+        setPending(sortTransactions(pendingTxs))
+        setTagged(preTagged)
+        setLoading(false)
+      }
     }
 
     load()
+    return () => { ignore = true }
   }, [period])
 
   async function dismiss(tx) {
@@ -234,6 +243,7 @@ export default function Review() {
         <button
           onClick={() => setPeriodIndex(i => Math.max(0, i - 1))}
           disabled={periodIndex === 0}
+          aria-label="Previous period"
           className="text-[#DC9F85] disabled:text-[#35211A] text-lg leading-none px-1 transition-colors"
         >‹</button>
         <span
@@ -245,6 +255,7 @@ export default function Review() {
         <button
           onClick={() => setPeriodIndex(i => Math.min(periods.length - 1, i + 1))}
           disabled={periodIndex === periods.length - 1}
+          aria-label="Next period"
           className="text-[#DC9F85] disabled:text-[#35211A] text-lg leading-none px-1 transition-colors"
         >›</button>
       </div>
