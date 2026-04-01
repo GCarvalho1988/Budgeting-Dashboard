@@ -63,6 +63,7 @@ app.post('/api/images', upload.single('file'), (req, res) => {
 
 app.get('/api/images/:filename', async (req, res) => {
   const filepath = path.join(IMAGES_PATH, req.params.filename);
+  if (!filepath.startsWith(IMAGES_PATH)) return res.status(400).json({ error: 'Invalid filename' });
   try {
     await fs.access(filepath);
     res.sendFile(filepath);
