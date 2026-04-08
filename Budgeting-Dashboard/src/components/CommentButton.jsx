@@ -1,5 +1,5 @@
 // src/components/CommentButton.jsx
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -21,7 +21,19 @@ export default function CommentButton({ transactionId, existingFlags = [] }) {
   const [flags, setFlags] = useState(existingFlags)
   const [saving, setSaving] = useState(false)
 
+  const containerRef = useRef(null)
   const hasComments = flags.length > 0
+
+  useEffect(() => {
+    if (!open) return
+    function handleMouseDown(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [open])
 
   async function submitComment() {
     if (!comment.trim()) return
@@ -47,7 +59,7 @@ export default function CommentButton({ transactionId, existingFlags = [] }) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen(o => !o)}
         title={hasComments ? `${flags.length} comment(s)` : 'Add a comment'}
