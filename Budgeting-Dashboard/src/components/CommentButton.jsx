@@ -26,16 +26,19 @@ export default function CommentButton({ transactionId, existingFlags = [] }) {
   async function submitComment() {
     if (!comment.trim()) return
     setSaving(true)
-    const { data } = await supabase.from('flags').insert({
-      transaction_id: transactionId,
-      user_id: user.id,
-      comment: comment.trim(),
-      type: 'comment',
-    }).select().single()
-    if (data) setFlags(f => [...f, data])
-    setComment('')
-    setSaving(false)
-    setOpen(false)
+    try {
+      const { data } = await supabase.from('flags').insert({
+        transaction_id: transactionId,
+        user_id: user.id,
+        comment: comment.trim(),
+        type: 'comment',
+      }).select().single()
+      if (data) setFlags(f => [...f, data])
+      setComment('')
+      setOpen(false)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function deleteComment(flagId) {
